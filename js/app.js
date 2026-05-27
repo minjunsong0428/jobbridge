@@ -1,5 +1,282 @@
+// --- Serverless / Static Dual-Mode API Interceptor ---
+const isServerless = location.hostname.endsWith("github.io") || 
+                     location.protocol === "file:" || 
+                     (!location.port && location.hostname !== "localhost") || 
+                     window.location.href.includes("github.io");
+
+const SIMULATED_FALLBACK_JOBS = [
+  { jobNm: "웹 개발자", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "대형 포털, 이커머스 등에서 웹 브라우저 기반의 사용자 인터페이스 및 서버 백엔드 시스템을 설계하고 개발합니다.", wage: "평균 4,500만원 내외", jobSeq: "1" },
+  { jobNm: "인공지능 전문가", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "딥러닝, 머신러닝 알고리즘을 설계하고 데이터 분석을 통해 자연어 처리, 이미지 인식, 자율 주행 등의 기술을 구현합니다.", wage: "평균 5,500만원 내외", jobSeq: "2" },
+  { jobNm: "정보보안 전문가", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "해킹, 바이러스 등 사이버 위협으로부터 데이터 및 IT 자산을 보호하고 보안 시스템을 운영 및 설계합니다.", wage: "평균 4,800만원 내외", jobSeq: "3" },
+  { jobNm: "생명공학 연구원", jobSe: "바이오/헬스케어", jobsFld: "자연과학/의료", summary: "유전공학, 세포학 기술을 응용하여 신약 개발, 유전자 변형 치료, 친환경 식량 자원 연구를 진행합니다.", wage: "평균 5,000만원 내외", jobSeq: "4" },
+  { jobNm: "UX/UI 디자이너", jobSe: "디자인/예술", jobsFld: "예술/디자인", summary: "사용자 리서치와 인터페이스 설계 기법을 바탕으로 모바일 앱이나 웹사이트의 사용 편의성과 미적 디자인을 총괄합니다.", wage: "평균 4,000만원 내외", jobSeq: "5" },
+  { jobNm: "로봇 공학자", jobSe: "기계/엔지니어링", jobsFld: "제조/기술", summary: "하드웨어 설계 및 제어 소프트웨어 개발을 결합하여 자율 이동 로봇, 스마트 공장 자동화 기기, 협동 로봇을 제작합니다.", wage: "평균 5,200만원 내외", jobSeq: "6" },
+  { jobNm: "빅데이터 분석가", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "수많은 비정형 데이터를 가공, 마이닝하여 트렌드를 규명하고 기업의 비즈니스적 의사결정을 돕는 예측 모델을 구축합니다.", wage: "평균 5,000만원 내외", jobSeq: "7" },
+  { jobNm: "반도체 공학자", jobSe: "기계/엔지니어링", jobsFld: "제조/기술", summary: "미세 공정 최적화 및 회로 설계를 통해 차세대 D램, 플래시 메모리, 비메모리 시스템 반도체를 설계하고 공정을 관리합니다.", wage: "평균 5,600만원 내외", jobSeq: "8" }
+];
+
+const SIMULATED_FALLBACK_MAJORS = [
+  { majorNm: "컴퓨터공학과", lClass: "공학계열", summary: "하드웨어와 소프트웨어를 아우르는 컴퓨터 시스템 전반과 알고리즘, 네트워크, 데이터베이스 등을 교육합니다.", jobNames: "웹 개발자, 시스템 프로그래머, 정보보안 전문가", majorSeq: "1" },
+  { majorNm: "소프트웨어학과", lClass: "공학계열", summary: "앱/웹 개발, 운영체제, 시스템 구조 등 실무 지향적 코딩 역량과 대형 소프트웨어 설계 방법론에 주력합니다.", jobNames: "앱 개발자, 웹 개발자, DevOps 엔지니어", majorSeq: "2" },
+  { majorNm: "인공지능학과", lClass: "공학계열", summary: "기계학습, 딥러닝, 빅데이터 처리, 인지 지능 등 미래형 지능 시스템 연구에 초점을 맞춥니다.", jobNames: "AI 연구원, 데이터 엔지니어, 빅데이터 분석가", majorSeq: "3" },
+  { majorNm: "전자공학과", lClass: "공학계열", summary: "반도체, 신호처리, 마이크로프로세서, 회로설계 등 전자소자 및 제어 기술의 기초를 다룹니다.", jobNames: "반도체 연구원, 디바이스 드라이버 개발자", majorSeq: "4" },
+  { majorNm: "생명공학과", lClass: "자연계열", summary: "생물체의 생명 현상을 화학, 물리, 공학적 관점에서 분석하고 이를 의료, 제약, 농업 등에 응용하는 기술을 배웁니다.", jobNames: "생명공학 연구원, 신약 개발 연구원", majorSeq: "5" },
+  { majorNm: "경영학과", lClass: "사회계열", summary: "마케팅, 인사 조직, 재무 회계, 생산 관리 등 기업 경영에 필요한 핵심 전략과 분석 도구를 체득합니다.", jobNames: "기업 기획원, 마케터, 재무 분석가", majorSeq: "6" },
+  { majorNm: "미디어커뮤니케이션학과", lClass: "인문계열", summary: "방송, 영상제작, 디지털 미디어 트렌드, 언론 보도, 콘텐츠 기획 전반을 연구합니다.", jobNames: "PD, 방송 기자, 영상 에디터, 미디어 크리에이터", majorSeq: "7" },
+  { majorNm: "디자인학과", lClass: "예술계열", summary: "시각 디자인, 산업 디자인, 영상 애니메이션 등 다양한 미디어를 기반으로 창의적 시각 표현과 사용자 경험을 탐구합니다.", jobNames: "UX/UI 디자이너, 그래픽 디자이너, 제품 디자이너", majorSeq: "8" }
+];
+
+function getMockDB() {
+  let dbStr = localStorage.getItem("jobbridge_db");
+  if (!dbStr) {
+    const defaultDB = {
+      users: {
+        "admin": {
+          password: "admin",
+          studentState: {
+            name: "관리자",
+            grade: "고등학교 2학년",
+            job: "웹 개발자",
+            major: "컴퓨터공학과",
+            gpa: 1.5,
+            mock: 120,
+            interests: ["웹프로그래밍", "디자인"],
+            intro: "기술로 사람들의 삶을 더 편리하게 만들고 싶어요!"
+          },
+          activities: [
+            {
+              title: "학급 홈페이지 제작",
+              date: "2026.05.26",
+              category: "프로젝트",
+              career: "웹 개발자",
+              content: "반별 소식과 자료를 공유할 수 있는 학급 홈페이지를 기획하고 제작했어요. 역할을 나누어 기획, 디자인, 구현을 진행했어요.",
+              learned: "HTML/CSS/JS 기본 사용법을 익혔고 팀 프로젝트 협업을 배웠어요."
+            }
+          ],
+          todos: [
+            { title: "활동 하나 기록하기", checked: false },
+            { title: "관심 직업 1개 탐색", checked: false },
+            { title: "포트폴리오 문장 다듬기", checked: false }
+          ],
+          roadmap: null
+        }
+      }
+    };
+    localStorage.setItem("jobbridge_db", JSON.stringify(defaultDB));
+    return defaultDB;
+  }
+  try {
+    return JSON.parse(dbStr);
+  } catch (e) {
+    return { users: {} };
+  }
+}
+
+function saveMockDB(db) {
+  localStorage.setItem("jobbridge_db", JSON.stringify(db));
+}
+
+function simulateApi(path, options, queryParams) {
+  const db = getMockDB();
+  const headers = options?.headers || {};
+  const method = options?.method || "GET";
+  let body = {};
+  if (options?.body) {
+    try {
+      body = JSON.parse(options.body);
+    } catch (e) {}
+  }
+  
+  if (path === "/api/check-username" && method === "POST") {
+    const { username } = body;
+    const exists = !!db.users[username];
+    return { status: 200, body: { duplicated: exists } };
+  }
+  
+  if (path === "/api/signup" && method === "POST") {
+    const { username, password } = body;
+    if (!username || !password) {
+      return { status: 400, body: { error: "아이디와 비밀번호를 입력해주세요." } };
+    }
+    if (db.users[username]) {
+      return { status: 400, body: { error: "이미 존재하는 아이디입니다." } };
+    }
+    
+    db.users[username] = {
+      password,
+      studentState: {
+        name: username,
+        grade: '고등학교 2학년',
+        job: '웹 개발자',
+        major: '컴퓨터공학과',
+        gpa: 2.3,
+        mock: 88,
+        interests: ['웹프로그래밍', '앱 개발', '인공지능'],
+        intro: '기술로 사람들의 삶을 더 편리하게 만들고 싶어요!'
+      },
+      activities: [
+        {
+          title: '학급 홈페이지 제작',
+          date: '2026.05.26',
+          category: '프로젝트',
+          career: '웹 개발자',
+          content: '반별 소식과 자료를 공유할 수 있는 학급 홈페이지를 기획하고 제작했어요. 역할을 나누어 기획, 디자인, 구현을 진행했어요.',
+          learned: 'HTML/CSS/JS 기본 사용법을 익혔고 팀 프로젝트 협업을 배웠어요.'
+        }
+      ],
+      todos: [
+        { title: '활동 하나 기록하기', checked: false },
+        { title: '관심 직업 1개 탐색', checked: false },
+        { title: '포트폴리오 문장 다듬기', checked: false }
+      ],
+      roadmap: null
+    };
+    saveMockDB(db);
+    return { status: 200, body: { success: true, username } };
+  }
+  
+  if (path === "/api/login" && method === "POST") {
+    const { username, password } = body;
+    if (!username || !password) {
+      return { status: 400, body: { error: "아이디와 비밀번호를 입력해주세요." } };
+    }
+    const user = db.users[username];
+    if (!user || user.password !== password) {
+      return { status: 400, body: { error: "아이디 또는 비밀번호가 틀렸습니다." } };
+    }
+    return { status: 200, body: { success: true, username } };
+  }
+  
+  const authUser = headers["X-Username"] || headers["x-username"];
+  if (path === "/api/student" && method === "GET") {
+    if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
+    const user = db.users[authUser];
+    if (!user) return { status: 404, body: { error: "사용자를 찾을 수 없습니다." } };
+    return {
+      status: 200,
+      body: {
+        studentState: user.studentState,
+        activities: user.activities || [],
+        todos: user.todos || [],
+        roadmap: user.roadmap || null
+      }
+    };
+  }
+  
+  if (path === "/api/student" && method === "POST") {
+    if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
+    const user = db.users[authUser];
+    if (!user) return { status: 404, body: { error: "사용자를 찾을 수 없습니다." } };
+    user.studentState = body.studentState;
+    saveMockDB(db);
+    return { status: 200, body: { success: true } };
+  }
+  
+  if (path === "/api/activity" && method === "POST") {
+    if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
+    const user = db.users[authUser];
+    if (!user) return { status: 404, body: { error: "사용자를 찾을 수 없습니다." } };
+    user.activities = user.activities || [];
+    user.activities.unshift(body.activity);
+    saveMockDB(db);
+    return { status: 200, body: { success: true, activities: user.activities } };
+  }
+  
+  if (path === "/api/todo" && method === "POST") {
+    if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
+    const user = db.users[authUser];
+    if (!user) return { status: 404, body: { error: "사용자를 찾을 수 없습니다." } };
+    user.todos = body.todos;
+    saveMockDB(db);
+    return { status: 200, body: { success: true } };
+  }
+  
+  if (path === "/api/roadmap" && method === "POST") {
+    if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
+    const user = db.users[authUser];
+    if (!user) return { status: 404, body: { error: "사용자를 찾을 수 없습니다." } };
+    user.roadmap = body.roadmap;
+    saveMockDB(db);
+    return { status: 200, body: { success: true } };
+  }
+  
+  if (path === "/api/careernet/jobs") {
+    const query = queryParams.query || "";
+    const filtered = SIMULATED_FALLBACK_JOBS.filter(j => 
+      j.jobNm.includes(query) || 
+      j.jobSe.includes(query) || 
+      j.summary.includes(query)
+    ).map(j => ({
+      name: j.jobNm,
+      category: j.jobSe,
+      field: j.jobsFld,
+      summary: j.summary,
+      wage: j.wage,
+      seq: j.jobSeq
+    }));
+    return { status: 200, body: filtered };
+  }
+  
+  if (path === "/api/careernet/majors") {
+    const query = queryParams.query || "";
+    const filtered = SIMULATED_FALLBACK_MAJORS.filter(m => 
+      m.majorNm.includes(query) || 
+      m.lClass.includes(query) || 
+      m.summary.includes(query)
+    ).map(m => ({
+      name: m.majorNm,
+      category: m.lClass,
+      summary: m.summary,
+      jobs: m.jobNames,
+      seq: m.majorSeq
+    }));
+    return { status: 200, body: filtered };
+  }
+  
+  throw new Error("경로를 찾을 수 없습니다.");
+}
+
+if (isServerless) {
+  console.log("ℹ️ Running in Serverless Mode. Intercepting API calls to localStorage.");
+  
+  const originalFetch = window.fetch;
+  window.fetch = async function(url, options) {
+    let path = url;
+    let queryParams = {};
+    if (url.includes("?")) {
+      const parts = url.split("?");
+      path = parts[0];
+      const searchParams = new URLSearchParams(parts[1]);
+      for (const [key, val] of searchParams.entries()) {
+        queryParams[key] = val;
+      }
+    }
+    
+    if (path.startsWith("/api/")) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          try {
+            const result = simulateApi(path, options, queryParams);
+            resolve(new Response(JSON.stringify(result.body), {
+              status: result.status || 200,
+              headers: { "Content-Type": "application/json" }
+            }));
+          } catch (e) {
+            resolve(new Response(JSON.stringify({ error: e.message }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" }
+            }));
+          }
+        }, 150);
+      });
+    }
+    return originalFetch(url, options);
+  };
+}
+
 let currentUser = null;
 let activitiesList = [];
+
 
 async function checkAuth() {
   const storedUser = localStorage.getItem("currentUser");
