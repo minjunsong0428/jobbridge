@@ -36,11 +36,70 @@
           </div>
           <div class="auth-field">
             <label for="auth-password">비밀번호</label>
-            <input type="password" id="auth-password" required placeholder="비밀번호를 입력하세요" />
+            <div style="position:relative;">
+              <input type="password" id="auth-password" required placeholder="비밀번호를 입력하세요" style="padding-right:44px;" />
+              <button type="button" id="btn-toggle-pw" aria-label="비밀번호 표시/숨기기" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;">👁</button>
+            </div>
           </div>
           <div class="auth-field" id="confirm-password-field" style="display: none;">
             <label for="auth-confirm-password">비밀번호 확인</label>
-            <input type="password" id="auth-confirm-password" placeholder="비밀번호를 한 번 더 입력하세요" />
+            <div style="position:relative;">
+              <input type="password" id="auth-confirm-password" placeholder="비밀번호를 한 번 더 입력하세요" style="padding-right:44px;" />
+              <button type="button" id="btn-toggle-confirm-pw" aria-label="비밀번호 확인 표시/숨기기" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;">👁</button>
+            </div>
+          </div>
+          <div class="signup-onboarding" id="signup-onboarding" style="display: none;">
+            <div class="signup-onboarding-head">
+              <div>
+                <strong>가입 진로 기초검사</strong>
+                <span>회원가입과 동시에 흥미 유형, 선호 활동, 관심 분야를 설정합니다.</span>
+              </div>
+              <small>18문항</small>
+            </div>
+            <div class="signup-profile-grid">
+              <label>이름<input type="text" id="signup-name" placeholder="학생 이름" /></label>
+              <label>학년<select id="signup-grade">
+                <option value="">학년 선택</option>
+                <option value="중학교 2학년">중학교 2학년</option>
+                <option value="중학교 3학년">중학교 3학년</option>
+                <option value="고등학교 1학년">고등학교 1학년</option>
+                <option value="고등학교 2학년">고등학교 2학년</option>
+                <option value="고등학교 3학년">고등학교 3학년</option>
+              </select></label>
+            </div>
+            <div class="signup-interest-questions" id="signup-interest-questions"></div>
+            <div class="signup-detail-section">
+              <strong>세부 관심 분야</strong>
+              <div class="signup-chip-grid" id="signup-detail-chips">
+                <button type="button" data-signup-chip="로봇·자동화">로봇·자동화</button>
+                <button type="button" data-signup-chip="생명과학·의료">생명과학·의료</button>
+                <button type="button" data-signup-chip="법·공공안전">법·공공안전</button>
+                <button type="button" data-signup-chip="교육·상담">교육·상담</button>
+                <button type="button" data-signup-chip="금융·경영">금융·경영</button>
+                <button type="button" data-signup-chip="디자인·영상">디자인·영상</button>
+                <button type="button" data-signup-chip="조리·관광">조리·관광</button>
+                <button type="button" data-signup-chip="환경·농생명">환경·농생명</button>
+                <button type="button" data-signup-chip="스포츠·체육">스포츠·체육</button>
+                <button type="button" data-signup-chip="건축·공간">건축·공간</button>
+                <button type="button" data-signup-chip="기계·전기전자">기계·전기전자</button>
+                <button type="button" data-signup-chip="언어·국제">언어·국제</button>
+              </div>
+            </div>
+            <div class="signup-detail-section">
+              <strong>선호 활동 방식</strong>
+              <div class="signup-chip-grid" id="signup-style-chips">
+                <button type="button" data-signup-style="실습·제작">실습·제작</button>
+                <button type="button" data-signup-style="자료분석·탐구">자료분석·탐구</button>
+                <button type="button" data-signup-style="글쓰기·표현">글쓰기·표현</button>
+                <button type="button" data-signup-style="토론·발표">토론·발표</button>
+                <button type="button" data-signup-style="팀 프로젝트">팀 프로젝트</button>
+                <button type="button" data-signup-style="정리·관리">정리·관리</button>
+              </div>
+            </div>
+            <div class="signup-result-preview" id="signup-result-preview">
+              <strong>검사 결과 미리보기</strong>
+              <p>문항에 답하면 상위 흥미 유형과 추천 직업·학과가 표시됩니다.</p>
+            </div>
           </div>
           <div class="auth-error-msg" id="auth-error" style="display: none;"></div>
           <button type="submit" class="primary auth-submit-btn" id="btn-auth-submit">로그인</button>
@@ -52,8 +111,10 @@
     <main class="app-frame" aria-label="진로브릿지 정적 디자인">
       <aside class="sidebar" aria-label="주요 메뉴">
         <a class="brand" href="#" aria-label="진로브릿지 홈">
-          <img class="brand-mark" src="jobbridge-logo.png" alt="진로브릿지 로고" style="width: 84px; height: 56px; object-fit: contain; display: block;" />
-          <span>진로브릿지</span>
+          <span class="brand-icon-shell">
+            <img class="brand-mark" src="jobbridge-logo.png" alt="진로브릿지 로고" style="width: 84px; height: 56px; object-fit: contain; display: block;" />
+          </span>
+          <span class="brand-name">진로브릿지</span>
         </a>
 
         <nav class="nav-list">
@@ -61,13 +122,13 @@
             <img class="nav-icon-img" src="assets/icons/home.svg" alt="" />
             홈
           </button>
+          <button class="nav-item" type="button" data-view="profile">
+            <img class="nav-icon-img" src="assets/icons/profile.svg" alt="" />
+            학생 정보
+          </button>
           <button class="nav-item" type="button" data-view="record">
             <img class="nav-icon-img" src="assets/icons/record.svg" alt="" />
             활동 기록
-          </button>
-          <button class="nav-item" type="button" data-view="portfolio">
-            <img class="nav-icon-img" src="assets/icons/portfolio.svg" alt="" />
-            포트폴리오
           </button>
           <button class="nav-item" type="button" data-view="explore">
             <img class="nav-icon-img" src="assets/icons/explore.svg" alt="" />
@@ -77,39 +138,27 @@
             <img class="nav-icon-img" src="assets/icons/career.svg" alt="" />
             진로 연결
           </button>
+          <button class="nav-item" type="button" data-view="portfolio">
+            <img class="nav-icon-img" src="assets/icons/portfolio.svg" alt="" />
+            포트폴리오
+          </button>
           <button class="nav-item" type="button" data-view="zep">
             <img class="nav-icon-img" src="assets/icons/zep.svg" alt="" />
             ZEP 전시관
           </button>
           <button class="nav-item" type="button" data-view="feedback">
             <img class="nav-icon-img" src="assets/icons/inquiry.svg" alt="" />
-            문의하기
-          </button>
-          <button class="nav-item" type="button" data-view="profile">
-            <img class="nav-icon-img" src="assets/icons/profile.svg" alt="" />
-            마이페이지
+            선생님 피드백
           </button>
         </nav>
 
-        <section class="daily-todo" aria-label="오늘의 할일" style="margin-top: auto; margin-bottom: 0;">
-          <div>
-            <small>오늘의 할 일</small>
-            <h2>진로 루틴 완료하기</h2>
-          </div>
-          <strong><span data-daily-count>0/3 완료</span></strong>
-        </section>
-
-        <button class="help-button" type="button">
-          <img class="nav-icon-img" src="assets/icons/help.svg" alt="" />
-          문의하기
-        </button>
       </aside>
 
       <section class="main-content-surface">
         <header class="topbar">
           <div class="crumb" data-crumb>홈</div>
           <div class="profile-menu">
-            <button class="bell" type="button" aria-label="알림" style="border: 0; background: transparent; cursor: pointer; color: var(--muted); position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;">
+            <button class="bell" type="button" aria-label="알림 페이지 열기" data-view-jump="notifications" style="border: 0; background: transparent; cursor: pointer; color: var(--muted); position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text);">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -117,8 +166,8 @@
               <span style="position: absolute; width: 6px; height: 6px; top: 4px; right: 4px; background: #ff4d4f; border-radius: 50%; border: 1.5px solid #fff;"></span>
             </button>
             <span class="divider"></span>
-            <span class="mini-avatar" id="avatar-initials-mini" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 800; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); margin-right: 4px;">KB</span>
-            <span id="header-user-name">김브릿지 학생</span>
+            <span class="mini-avatar" id="avatar-initials-mini" style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 800; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); margin-right: 4px;">비</span>
+            <span id="header-user-name">비회원</span>
             <button type="button" class="btn-login-open" id="btn-login-desktop" style="display: none;">로그인/회원가입</button>
             <button type="button" class="btn-logout" id="btn-logout-desktop" style="display: none;">로그아웃</button>
           </div>
@@ -128,13 +177,9 @@
           <div class="hero-grid">
             <div class="hero-copy">
               <h1>흩어진 활동을<br /><span>하나의 진로로 잇다</span></h1>
-              <p>독서, 프로젝트, 동아리, 대회 등 다양한 활동을 기록하고 나만의 <b>진로 포트폴리오</b>로 완성해보세요.</p>
+              <p>오늘의 경험을 기록하고, 포트폴리오와 진로 탐색까지 한 흐름으로 이어가세요.</p>
             </div>
             <div class="hero-visual" aria-hidden="true">
-              <div class="orbit orbit-1">독서</div>
-              <div class="orbit orbit-2">프로젝트</div>
-              <div class="orbit orbit-3">동아리</div>
-              <div class="orbit orbit-4">대회</div>
               <svg viewBox="0 0 520 320" class="hero-svg-illustration" role="img" aria-label="진로브릿지 커리어 커넥터">
                 <!-- Gradients -->
                 <defs>
@@ -150,42 +195,61 @@
                     <stop offset="0%" stop-color="#7d5cf6" stop-opacity="0.9"/>
                     <stop offset="100%" stop-color="#8b6cff" stop-opacity="0.3"/>
                   </linearGradient>
+                  <linearGradient id="connector-grad" x1="18%" y1="18%" x2="88%" y2="74%">
+                    <stop offset="0%" stop-color="#1ec8a0" stop-opacity="0.62"/>
+                    <stop offset="55%" stop-color="#2d7dff" stop-opacity="0.56"/>
+                    <stop offset="100%" stop-color="#7d5cf6" stop-opacity="0.5"/>
+                  </linearGradient>
+                  <filter id="connector-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="2.2" flood-color="#2d7dff" flood-opacity="0.18"/>
+                  </filter>
                 </defs>
                 <!-- Background Mesh -->
-                <path d="M 50,160 Q 150,60 260,160 T 470,160" fill="none" stroke="rgba(45, 125, 255, 0.08)" stroke-width="4" stroke-dasharray="8 6"/>
-                <path d="M 50,200 Q 200,300 350,150 T 470,220" fill="none" stroke="rgba(19, 170, 165, 0.07)" stroke-width="3" stroke-dasharray="6 4"/>
+                <path d="M 50,160 Q 150,60 260,160 T 470,160" fill="none" stroke="rgba(45, 125, 255, 0.12)" stroke-width="4" stroke-dasharray="8 6"/>
+                <path d="M 50,200 Q 200,300 350,150 T 470,220" fill="none" stroke="rgba(19, 170, 165, 0.11)" stroke-width="3.5" stroke-dasharray="6 4"/>
+
+                <!-- Connection Lines -->
+                <g class="connector-lines" filter="url(#connector-glow)">
+                  <path d="M 140,90 C 178,104 214,136 260,160" fill="none" stroke="url(#connector-grad)" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M 380,100 C 342,112 304,134 260,160" fill="none" stroke="url(#connector-grad)" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M 350,230 C 326,206 298,181 260,160" fill="none" stroke="rgba(246, 178, 41, 0.46)" stroke-width="3.6" stroke-linecap="round"/>
+                  <path d="M 130,210 C 168,200 212,178 260,160" fill="none" stroke="rgba(45, 125, 255, 0.5)" stroke-width="3.6" stroke-linecap="round"/>
+                  <path d="M 140,90 C 198,54 312,58 380,100" fill="none" stroke="rgba(125, 92, 246, 0.22)" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 7"/>
+                </g>
                 
                 <!-- Central Node (My Portfolio) -->
                 <g class="illustration-node main-node">
-                  <circle cx="260" cy="160" r="50" fill="url(#blue-grad)" stroke="rgba(45, 125, 255, 0.4)" stroke-width="3"/>
-                  <circle cx="260" cy="160" r="40" fill="rgba(255, 255, 255, 0.08)" backdrop-filter="blur(8px)"/>
-                  <text x="260" y="165" font-family="'Outfit', system-ui" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle">ME</text>
+                  <ellipse cx="258" cy="244" rx="142" ry="16" fill="rgba(27, 110, 243, 0.08)"/>
+                  <rect x="145" y="206" width="82" height="9" rx="4.5" fill="#18c4b7"/>
+                  <rect x="152" y="217" width="92" height="9" rx="4.5" fill="#2d7dff"/>
+                  <rect x="160" y="228" width="76" height="9" rx="4.5" fill="#7d5cf6" opacity="0.45"/>
+                  <image href="assets/icons/cheer-character.svg" x="210" y="102" width="104" height="104"/>
+                  <rect x="292" y="168" width="118" height="72" rx="12" fill="#eff6ff" stroke="rgba(45, 125, 255, 0.26)" stroke-width="2"/>
+                  <rect x="305" y="182" width="92" height="42" rx="7" fill="#ffffff"/>
+                  <circle cx="351" cy="203" r="8" fill="#9db7e7"/>
+                  <path d="M 284 240 H 420" stroke="#cfe1ff" stroke-width="7" stroke-linecap="round"/>
                 </g>
                 
                 <!-- Orbiting Node 1 (IT / Dev) -->
                 <g class="illustration-node node-it">
-                  <line x1="260" y1="160" x2="140" y2="90" stroke="rgba(45, 125, 255, 0.3)" stroke-width="2" stroke-dasharray="4 2"/>
                   <circle cx="140" cy="90" r="32" fill="url(#teal-grad)" stroke="rgba(19, 170, 165, 0.4)" stroke-width="2"/>
                   <text x="140" y="94" font-family="'Pretendard', system-ui" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">개발</text>
                 </g>
                 
                 <!-- Orbiting Node 2 (Design) -->
                 <g class="illustration-node node-design">
-                  <line x1="260" y1="160" x2="380" y2="100" stroke="rgba(125, 92, 246, 0.3)" stroke-width="2"/>
                   <circle cx="380" cy="100" r="28" fill="url(#violet-grad)" stroke="rgba(125, 92, 246, 0.4)" stroke-width="2"/>
                   <text x="380" y="104" font-family="'Pretendard', system-ui" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle">디자인</text>
                 </g>
                 
                 <!-- Orbiting Node 3 (Business/Idea) -->
                 <g class="illustration-node node-business">
-                  <line x1="260" y1="160" x2="350" y2="230" stroke="rgba(19, 170, 165, 0.2)" stroke-width="2" stroke-dasharray="3 3"/>
                   <circle cx="350" cy="230" r="24" fill="rgba(246, 178, 41, 0.15)" stroke="rgba(246, 178, 41, 0.4)" stroke-width="2"/>
                   <text x="350" y="234" font-family="'Pretendard', system-ui" font-size="10" font-weight="800" fill="#e65c00" text-anchor="middle">기획</text>
                 </g>
                 
                 <!-- Orbiting Node 4 (AI/Future) -->
                 <g class="illustration-node node-ai">
-                  <line x1="260" y1="160" x2="130" y2="210" stroke="rgba(45, 125, 255, 0.2)" stroke-width="2"/>
                   <circle cx="130" cy="210" r="30" fill="url(#blue-grad)" stroke="rgba(45, 125, 255, 0.4)" stroke-width="2"/>
                   <text x="130" y="214" font-family="'Outfit', system-ui" font-size="11" font-weight="800" fill="#ffffff" text-anchor="middle">AI</text>
                 </g>
@@ -205,103 +269,65 @@
 
           <div class="action-row">
             <button class="action-card blue" type="button" data-view-jump="record">
-              <span class="card-icon paper"></span>
+              <span class="action-icon-wrap"><img src="assets/icons/action-start.svg" alt="" /></span>
               <span>
-                <strong>활동 기록하기</strong>
+                <strong>시작하기</strong>
                 <small>새로운 활동을 기록하고 나의 진로 여정을 시작해요.</small>
               </span>
               <i>›</i>
             </button>
-            <button class="action-card teal" type="button" data-view-jump="explore">
-              <span class="card-icon portfolio"></span>
+            <button class="action-card teal" type="button" data-view-jump="portfolio">
+              <span class="action-icon-wrap"><img src="assets/icons/action-portfolio.svg" alt="" /></span>
               <span>
-                <strong>진로검사·탐색</strong>
-                <small>흥미, 적성, 가치관을 바탕으로 직업과 학과를 찾아요.</small>
+                <strong>내 포트폴리오 보기</strong>
+                <small>활동, 역량, 목표를 한 장의 성장 기록으로 확인해요.</small>
               </span>
               <i>›</i>
             </button>
-            <button class="action-card violet" type="button" data-view-jump="career">
-              <span class="card-icon gallery"></span>
+            <button class="action-card violet" type="button" data-view-jump="zep">
+              <span class="action-icon-wrap"><img src="assets/icons/zep.svg" alt="" /></span>
               <span>
-                <strong>직업·학과 연결</strong>
-                <small>활동 기록을 관련 역량, 직업, 학과 정보와 연결해요.</small>
+                <strong>ZEP 전시관 보기</strong>
+                <small>완성한 포트폴리오를 체험형 전시관으로 보여줘요.</small>
               </span>
               <i>›</i>
             </button>
           </div>
 
-          <section class="daily-todo" aria-label="오늘의 할일">
+          <div class="home-dashboard">
+            <section class="daily-todo home-todo-panel" aria-label="오늘 이어갈 일">
+              <div>
+                <small>오늘 이어갈 일</small>
+                <h2>작게 남기고 바로 이어가요</h2>
+              </div>
+              <strong><span data-daily-count>0/3 완료</span></strong>
+            </section>
+
+            <article class="panel home-history-panel">
+              <div class="panel-head">
+                <h2>최근 기록</h2>
+                <button type="button" data-view-jump="record">전체 보기 ›</button>
+              </div>
+              <ul class="history-list"></ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" data-panel="notifications">
+          <div class="page-title with-icon">
+            <span class="title-icon chat"></span>
             <div>
-              <small>오늘의 할일</small>
-              <h2>진로 루틴 3개를 완료해요</h2>
+              <h1>알림</h1>
+              <p>관심 분야, 활동 기록, 로드맵에서 이어진 다음 행동을 확인해요.</p>
             </div>
-            <strong><span data-daily-count>0/3 완료</span></strong>
-          </section>
-
-          <section class="career-service-strip" aria-label="진로 탐색 핵심 서비스">
-            <article>
-              <b>진로심리검사</b>
-              <span>흥미·적성·가치관 기반 추천</span>
-            </article>
-            <article>
-              <b>직업·학과 매트릭스</b>
-              <span>관심 직업과 전공을 함께 비교</span>
-            </article>
-            <article>
-              <b>대학·전형 검색</b>
-              <span>대학, 학과, 전형 조건 탐색</span>
-            </article>
-            <article>
-              <b>성적 분석</b>
-              <span>학생부·수능 기준 지원 가능성 확인</span>
-            </article>
-            <article>
-              <b>상담·마이커리어</b>
-              <span>검사·상담 결과 저장과 피드백</span>
-            </article>
-            <article>
-              <b>연구 기반 활동</b>
-              <span>진로성숙도와 자기효능감 중심 설계</span>
-            </article>
-          </section>
-
-          <div class="dashboard-grid">
-            <article class="panel">
-              <div class="panel-head">
-                <h2>오늘의 추천 활동</h2>
-                <button type="button">더보기 ›</button>
-              </div>
-              <ul class="task-list">
-                <li>
-                  <span class="round-icon book"></span>
-                  <div><b>독서 기록하기</b><small>새롭게 읽은 책을 기록하고 인사이트를 정리해보세요.</small></div>
-                  <em>+10P</em>
-                </li>
-                <li>
-                  <span class="round-icon bulb"></span>
-                  <div><b>프로젝트 노트 작성하기</b><small>아이디어부터 결과까지 프로젝트 과정을 정리해보세요.</small></div>
-                  <em>+15P</em>
-                </li>
-                <li>
-                  <span class="round-icon people"></span>
-                  <div><b>동아리 활동 기록하기</b><small>경험과 배운 점을 남겨보세요.</small></div>
-                  <em>+10P</em>
-                </li>
-              </ul>
-            </article>
-
-            <article class="panel">
-              <div class="panel-head">
-                <h2>최근 기록한 활동</h2>
-                <button type="button">더보기 ›</button>
-              </div>
-              <ul class="history-list">
-                <li><span class="round-icon book"></span><div><b>「사피엔스」 독서 기록</b><small>독서 · 2024.05.12</small></div><strong>완료</strong></li>
-                <li><span class="round-icon bulb"></span><div><b>교내 환경 개선 프로젝트</b><small>프로젝트 · 2024.05.10</small></div><strong>완료</strong></li>
-                <li><span class="round-icon people"></span><div><b>과학 동아리 활동 보고</b><small>동아리 · 2024.05.08</small></div><strong>완료</strong></li>
-                <li><span class="round-icon trophy"></span><div><b>전국 청소년 혁신 아이디어 대회</b><small>대회 · 2024.05.05</small></div><strong class="progress">진행중</strong></li>
-              </ul>
-            </article>
+          </div>
+          <div class="notification-board">
+            <div class="notification-summary">
+              <strong id="notification-count">0</strong>
+              <span>확인할 알림</span>
+              <button type="button" class="outline compact" id="btn-clear-notifications">모두 읽음</button>
+            </div>
+            <div class="notification-list" id="notification-list"></div>
           </div>
         </section>
 
@@ -320,15 +346,35 @@
             <button type="button">대회</button>
             <button type="button">동아리</button>
             <button type="button">진로체험</button>
+            <button type="button">봉사활동</button>
+            <button type="button">발표</button>
+            <button type="button">기타 활동</button>
           </div>
           <div class="form-layout">
-            <form class="record-form">
-              <label><span>활동 제목</span><input value="" placeholder="활동 제목을 입력하세요" /></label>
-              <label><span>활동 날짜</span><input value="2026.05.26" /></label>
-              <label><span>활동 내용</span><textarea placeholder="활동의 목적, 진행 과정, 주요 내용 등을 자세히 작성해 주세요."></textarea></label>
-              <label><span>배운 점</span><textarea placeholder="이번 활동을 통해 새롭게 배운 점은 무엇인가요?"></textarea></label>
-              <label><span>느낀 점</span><textarea placeholder="활동을 통해 느낀 점이나 기억에 남는 순간을 작성해 주세요."></textarea></label>
-              <label><span>관련 진로</span><select><option>관련 진로를 선택하세요</option></select></label>
+            <form class="record-form" id="main-record-form">
+              <label class="field-row" data-field-icon="record"><span>활동 제목</span><input id="record-title" value="" placeholder="활동 제목을 입력하세요" /></label>
+              <label class="field-row" data-field-icon="date"><span>활동 날짜</span><input id="record-date" type="date" /></label>
+              <label class="field-row" data-field-icon="category"><span>활동 카테고리</span>
+                <select id="record-category">
+                  <option value="독서">📚 독서</option>
+                  <option value="프로젝트" selected>💡 프로젝트</option>
+                  <option value="대회">🏆 대회</option>
+                  <option value="동아리">👥 동아리</option>
+                  <option value="진로체험">🎯 진로체험</option>
+                  <option value="봉사활동">🤝 봉사활동</option>
+                  <option value="발표">🎤 발표</option>
+                  <option value="기타 활동">✦ 기타 활동</option>
+                </select>
+              </label>
+              <label class="field-row wide-field" data-field-icon="content"><span>활동 내용</span><textarea id="record-content" placeholder="활동의 목적, 진행 과정, 주요 내용 등을 자세히 작성해 주세요."></textarea></label>
+              <label class="field-row" data-field-icon="role"><span>맡은 역할</span><input id="record-role" placeholder="예: 기획, 디자인, 발표, 구현" /></label>
+              <label class="field-row" data-field-icon="skill"><span>관련 역량</span><input id="record-competency" placeholder="예: 문제 해결, 협업, 화면 설계" /></label>
+              <label class="field-row wide-field" data-field-icon="learned"><span>배운 점</span><textarea id="record-learned" placeholder="이번 활동을 통해 새롭게 배운 점은 무엇인가요?"></textarea></label>
+              <label class="field-row wide-field" data-field-icon="feeling"><span>느낀 점</span><textarea id="record-feeling" placeholder="활동을 통해 느낀 점이나 기억에 남는 순간을 작성해 주세요."></textarea></label>
+              <label class="field-row wide-field" data-field-icon="difficulty"><span>어려웠던 점</span><textarea id="record-difficulty" placeholder="활동 중 막혔던 부분이나 고민했던 점을 적어주세요."></textarea></label>
+              <label class="field-row wide-field" data-field-icon="solution"><span>해결한 방법</span><textarea id="record-solution" placeholder="문제를 어떻게 해결했는지 구체적으로 적어주세요."></textarea></label>
+              <label class="field-row" data-field-icon="career"><span>관련 진로</span><select id="record-career"><option value="">관련 진로를 선택하세요</option></select></label>
+              <label class="field-row" data-field-icon="link"><span>첨부 링크</span><input id="record-link" placeholder="https:// 또는 자료 링크" /></label>
               <div class="upload-row">
                 <span>사진/링크 첨부</span>
                 <div class="upload-box">이미지, 문서, 링크를 추가할 수 있어요</div>
@@ -350,12 +396,7 @@
                 <h2>최근 기록 요약</h2>
                 <button type="button">전체 보기 ›</button>
               </div>
-              <ul class="summary-cards">
-                <li><span class="round-icon code"></span><div><em>프로젝트</em><b>학교 홈페이지 제작</b><small>프로젝트 / 웹개발자</small></div><time>2026.05.26</time></li>
-                <li><span class="round-icon trophy"></span><div><em class="purple">대회</em><b>IT 해커톤 참가</b><small>대회 / 문제 해결</small></div><time>2026.05.24</time></li>
-                <li><span class="round-icon book"></span><div><em class="green">독서</em><b>「클린 코드」 독서</b><small>독서 / 소프트웨어 엔지니어</small></div><time>2026.05.22</time></li>
-                <li><span class="round-icon people"></span><div><em>동아리</em><b>코딩 동아리 활동</b><small>동아리 / 웹개발</small></div><time>2026.05.20</time></li>
-              </ul>
+              <ul class="summary-cards"></ul>
               <div class="advice-card">
                 <strong>기록은 나만의 성장 자산이에요</strong>
                 <p>꾸준한 기록은 진로 이해를 돕고 포트폴리오로 연결되어 미래의 나를 빛나게 해요!</p>
@@ -371,11 +412,11 @@
           </div>
           <div class="portfolio-layout">
             <div class="portfolio-list">
-              <article><span class="round-icon user"></span><div><h2>자기소개</h2><p>안녕하세요! 문제 해결을 좋아하고 새로운 기술을 배우는 데 열정적인 중학생입니다.</p></div><button type="button">수정하기</button></article>
-              <article><span class="round-icon heart"></span><div><h2>관심 분야</h2><p><mark>웹프로그래밍</mark><mark>UI/UX 디자인</mark><mark>인공지능</mark></p></div><button type="button">수정하기</button></article>
-              <article><span class="round-icon clipboard"></span><div><h2>주요 활동</h2><p>교내 웹 동아리 활동, 2024 청소년 IT 해커톤 참가</p></div><button type="button">수정하기</button></article>
-              <article><span class="round-icon monitor"></span><div><h2>프로젝트 결과물</h2><p>학습 관리 웹 서비스 제작, HTML/CSS/JavaScript 활용</p></div><button type="button">수정하기</button></article>
-              <article><span class="round-icon target"></span><div><h2>진로 목표</h2><p>프론트엔드 개발자로 성장하여 사용자 경험을 가치 있게 만들고 싶습니다.</p></div><button type="button">수정하기</button></article>
+              <article><span class="round-icon user"></span><div><h2>자기소개</h2><p>학생 정보 화면에서 자기소개를 입력하면 표시됩니다.</p></div><button type="button">수정하기</button></article>
+              <article><span class="round-icon heart"></span><div><h2>관심 분야</h2><p></p></div><button type="button">수정하기</button></article>
+              <article><span class="round-icon clipboard"></span><div><h2>주요 활동</h2><p>활동 기록을 남기면 주요 활동이 표시됩니다.</p></div><button type="button">수정하기</button></article>
+              <article><span class="round-icon monitor"></span><div><h2>프로젝트 결과물</h2><p>첨부 자료나 링크를 추가하면 결과물이 표시됩니다.</p></div><button type="button">수정하기</button></article>
+              <article><span class="round-icon target"></span><div><h2>진로 목표</h2><p>희망 직업과 학과를 선택하면 진로 목표 문장이 표시됩니다.</p></div><button type="button">수정하기</button></article>
             </div>
             <aside class="portfolio-preview">
               <h2>포트폴리오 미리보기</h2>
@@ -385,7 +426,7 @@
                 <b>진로브릿지 포트폴리오</b>
                 <h3>김브릿지</h3>
                 <small id="preview-grade">고등학교 2학년</small>
-                <span class="portrait-avatar" id="avatar-initials-preview" style="width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 800; border: 4px solid #fff; box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25); margin: 18px auto;">KB</span>
+                <span class="portrait-avatar" id="avatar-initials-preview" style="width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32px; font-weight: 800; border: 4px solid #fff; box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25); margin: 18px auto;">학</span>
                 <ul>
                   <li>자기소개</li>
                   <li>관심 분야</li>
@@ -452,15 +493,15 @@
             <span class="status-pill">선택한 활동</span>
             <div class="activity-image"></div>
             <div>
-              <h2>학교 홈페이지 제작</h2>
-              <p><mark>프로젝트</mark><mark>웹 개발</mark><mark>협업 활동</mark></p>
-              <p>반별 소식과 자료를 공유할 수 있는 학급 홈페이지를 기획하고 제작했어요. 역할을 나누어 기획, 디자인, 구현을 진행했어요.</p>
+              <h2>선택한 활동 없음</h2>
+              <p><mark>활동 기록</mark></p>
+              <p>활동을 저장하면 관련 진로 연결 정보가 표시됩니다.</p>
             </div>
           </article>
           <div class="career-cards">
             <article><span class="round-icon brain"></span><h2>검사 기반 역량</h2><ul><li>문제 해결</li><li>디지털 문해력</li><li>협업 성향</li></ul></article>
-            <article><span class="round-icon briefcase"></span><h2>연결 직업 정보</h2><ul><li>웹개발자</li><li>서비스 기획자</li><li>UI/UX 디자이너</li></ul></article>
-            <article><span class="round-icon school"></span><h2>학과·전형 연결</h2><ul><li>웹프로그래밍과</li><li>컴퓨터공학과</li><li>학생부종합 탐색</li></ul></article>
+            <article><span class="round-icon briefcase"></span><h2>연결 직업 정보</h2><ul><li>선택한 관심 분야 기준으로 표시됩니다</li></ul></article>
+            <article><span class="round-icon school"></span><h2>학과·전형 연결</h2><ul><li>희망 학과 선택 후 표시됩니다</li></ul></article>
           </div>
           <div class="insight-box">
             <span class="round-icon bulb"></span>
@@ -471,7 +512,7 @@
         <section class="view" data-panel="zep">
           <div class="page-title">
             <h1>나의 ZEP 전시관</h1>
-            <p>내 포트폴리오를 가상 전시관에서 체험형으로 보여줘요.</p>
+            <p>내 포트폴리오를 ZEP 전시관에서 체험형으로 보여줘요.</p>
           </div>
           <div class="zep-visual">
             <span class="zone z1">자기소개 존</span>
@@ -512,52 +553,89 @@
                 <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--blue); margin-bottom: 6px;">
                   <span>💡</span> 게스트 모드로 이용 중입니다
                 </div>
-                로그인하지 않고 수정하신 정보는 브라우저에 임시 저장됩니다. 회원가입 및 로그인하시면 서버에 데이터를 안전하게 동기화하고 연동하실 수 있습니다.
+                로그인하지 않으면 학생 정보, 활동 기록, 포트폴리오 저장 기능을 사용할 수 없습니다. 회원가입 및 로그인 후 안전하게 기록을 저장해 주세요.
                 <button type="button" class="btn-login-open" style="margin-top: 12px; padding: 8px 16px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 0; background: var(--blue); color: #fff; cursor: pointer; display: block;">로그인 / 회원가입 하러가기</button>
               </div>
 
               <form class="student-form">
                 <div class="avatar-block">
-                  <span class="portrait-avatar big" id="avatar-initials-profile-big" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26px; font-weight: 800; border: 3px solid #fff; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3); margin: 0 auto 12px;">KB</span>
+                  <span class="portrait-avatar big" id="avatar-initials-profile-big" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26px; font-weight: 800; border: 3px solid #fff; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3); margin: 0 auto 12px;">학</span>
                   <button type="button" aria-label="프로필 사진 변경">●</button>
                 </div>
                 <div class="fields">
-                  <label>이름<input id="profile-name" value="김브릿지" /></label>
+                  <label>이름<input id="profile-name" value="" placeholder="이름을 입력하세요" /></label>
                   <label>학년<select id="profile-grade">
+                    <option value="">학년을 선택하세요</option>
                     <option value="중학교 2학년">중학교 2학년</option>
                     <option value="중학교 3학년">중학교 3학년</option>
                     <option value="고등학교 1학년">고등학교 1학년</option>
-                    <option value="고등학교 2학년" selected>고등학교 2학년</option>
+                    <option value="고등학교 2학년">고등학교 2학년</option>
                     <option value="고등학교 3학년">고등학교 3학년</option>
                   </select></label>
-                  <label>희망 직업<select id="profile-job">
-                    <option value="웹 개발자">웹 개발자</option>
-                    <option value="서비스 기획자">서비스 기획자</option>
-                    <option value="UI/UX 디자이너">UI/UX 디자이너</option>
-                    <option value="데이터 분석가">데이터 분석가</option>
-                    <option value="인공지능 개발자">인공지능 개발자</option>
-                    <option value="소프트웨어 엔지니어">소프트웨어 엔지니어</option>
-                  </select></label>
-                  <label>희망 학과<select id="profile-major">
-                    <option value="컴퓨터공학과">컴퓨터공학과</option>
-                    <option value="소프트웨어학과">소프트웨어학과</option>
-                    <option value="정보통신공학과">정보통신공학과</option>
-                    <option value="디자인학과">디자인학과</option>
-                    <option value="경영정보학과">경영정보학과</option>
-                  </select></label>
-                  <label>평균 내신 등급<input id="profile-gpa" type="number" step="0.1" min="1.0" max="9.0" value="2.3" placeholder="예: 2.3" /></label>
-                  <label>모의고사 백분위 (%)<input id="profile-mock" type="number" step="1" min="0" max="100" value="88" placeholder="예: 88" /></label>
+                  <label>희망 직업<input type="text" id="profile-job" placeholder="예: 웹 개발자, AI 연구원..." list="job-suggestions" />
+                    <datalist id="job-suggestions">
+                      <option value="웹 개발자"></option>
+                      <option value="전기공학 기술자"></option>
+                      <option value="생명공학 연구원"></option>
+                      <option value="간호사"></option>
+                      <option value="상담심리사"></option>
+                      <option value="교사"></option>
+                      <option value="경찰관"></option>
+                      <option value="소방관"></option>
+                      <option value="마케터"></option>
+                      <option value="회계사"></option>
+                      <option value="건축가"></option>
+                      <option value="호텔리어"></option>
+                      <option value="셰프"></option>
+                      <option value="환경공학 기술자"></option>
+                      <option value="서비스 기획자"></option>
+                      <option value="UI/UX 디자이너"></option>
+                      <option value="데이터 분석가"></option>
+                      <option value="인공지능 개발자"></option>
+                      <option value="소프트웨어 엔지니어"></option>
+                      <option value="정보보안 전문가"></option>
+                      <option value="빅데이터 분석가"></option>
+                      <option value="반도체 공학자"></option>
+                      <option value="로봇 공학자"></option>
+                    </datalist>
+                  </label>
+                  <label>희망 학과<input type="text" id="profile-major" placeholder="예: 컴퓨터공학과, 디자인학과..." list="major-suggestions" />
+                    <datalist id="major-suggestions">
+                      <option value="컴퓨터공학과"></option>
+                      <option value="전기전자공학과"></option>
+                      <option value="생명공학과"></option>
+                      <option value="간호학과"></option>
+                      <option value="심리학과"></option>
+                      <option value="교육학과"></option>
+                      <option value="경찰행정학과"></option>
+                      <option value="회계학과"></option>
+                      <option value="건축학과"></option>
+                      <option value="호텔관광학과"></option>
+                      <option value="조리외식경영학과"></option>
+                      <option value="환경공학과"></option>
+                      <option value="소프트웨어학과"></option>
+                      <option value="인공지능학과"></option>
+                      <option value="정보통신공학과"></option>
+                      <option value="전자공학과"></option>
+                      <option value="디자인학과"></option>
+                      <option value="경영정보학과"></option>
+                      <option value="경영학과"></option>
+                      <option value="생명공학과"></option>
+                    </datalist>
+                  </label>
+                  <label>평균 내신 등급<input id="profile-gpa" type="number" step="0.1" min="1.0" max="9.0" value="" placeholder="예: 2.3" /></label>
+                  <label>모의고사 백분위 (%)<input id="profile-mock" type="number" step="1" min="0" max="100" value="" placeholder="예: 88" /></label>
                 </div>
                 <div class="chip-field">
-                  <strong>관심 분야 <small>(클릭하여 선택)</small></strong>
-                  <span class="chip selected">웹프로그래밍</span>
-                  <span class="chip selected">앱 개발</span>
-                  <span class="chip">e-비즈니스</span>
-                  <span class="chip">디자인</span>
-                  <span class="chip selected">인공지능</span>
-                  <span class="chip">창업</span>
+                  <strong>직업 흥미 유형 <small>(복수 선택 가능)</small></strong>
+                  <span class="chip">현실형(실행·기술)</span>
+                  <span class="chip">탐구형(분석·연구)</span>
+                  <span class="chip">예술형(창작·표현)</span>
+                  <span class="chip">사회형(교육·돌봄)</span>
+                  <span class="chip">진취형(설득·경영)</span>
+                  <span class="chip">관습형(자료·사무)</span>
                 </div>
-                <label class="wide-label">한 줄 소개<textarea id="profile-intro">기술로 사람들의 삶을 더 편리하게 만들고 싶어요!</textarea></label>
+                <label class="wide-label">한 줄 소개<textarea id="profile-intro" placeholder="나를 소개하는 문장을 적어주세요."></textarea></label>
                 <div class="form-actions">
                   <button type="button" class="ghost">취소</button>
                   <button type="button" class="primary">저장하기</button>
@@ -565,10 +643,10 @@
               </form>
             </div>
 
-            <!-- 우측: 나의 실시간 디지털 학생증 및 대시보드 (우측 공백 채우기!) -->
+            <!-- 우측: 나의 디지털 학생증 및 대시보드 -->
             <div class="profile-dashboard-container">
-              <h3>실시간 진로 카드</h3>
-              <p class="dashboard-desc">입력하신 정보가 진로 카드 및 대시보드에 실시간 반영됩니다.</p>
+              <h3>진로 카드 미리보기</h3>
+              <p class="dashboard-desc">입력한 학생 정보와 활동 기록을 한 장의 진로 카드로 정리합니다.</p>
               
               <!-- 디지털 진로 카드 -->
               <div class="digital-id-card">
@@ -580,24 +658,23 @@
                   </div>
                   <div class="card-chip"></div>
                   <div class="card-profile-section">
-                    <span class="portrait-avatar card-avatar" id="avatar-initials-card" style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 800; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); margin: 0 !important;">KB</span>
+                    <span class="portrait-avatar card-avatar" id="avatar-initials-card" style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 800; border: 2px solid #fff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); margin: 0 !important;">학</span>
                     <div class="card-details">
-                      <h4 id="card-name-txt">김브릿지</h4>
-                      <p id="card-grade-txt">고등학교 2학년</p>
+                      <h4 id="card-name-txt">이름 미입력</h4>
+                      <p id="card-grade-txt">학년 미입력</p>
                     </div>
                   </div>
                   <div class="card-meta">
                     <div class="meta-item">
                       <small>희망 진로</small>
-                      <strong id="card-job-txt">웹 개발자</strong>
+                      <strong id="card-job-txt">희망 직업 미선택</strong>
                     </div>
                     <div class="meta-item">
                       <small>희망 학과</small>
-                      <strong id="card-major-txt">컴퓨터공학과</strong>
+                      <strong id="card-major-txt">희망 학과 미선택</strong>
                     </div>
                   </div>
                   <div class="card-interests" id="card-interests-tags">
-                    <mark>웹프로그래밍</mark><mark>앱 개발</mark><mark>인공지능</mark>
                   </div>
                 </div>
               </div>
@@ -608,20 +685,20 @@
                 <div class="radar-score-grid">
                   <div class="radar-score-item">
                     <span>교과 내신</span>
-                    <strong id="dash-gpa-txt">2.3등급</strong>
+                    <strong id="dash-gpa-txt">미입력</strong>
                   </div>
                   <div class="radar-score-item">
                     <span>모의 백분위</span>
-                    <strong id="dash-mock-txt">88%</strong>
+                    <strong id="dash-mock-txt">미입력</strong>
                   </div>
                   <div class="radar-score-item">
                     <span>정성 활동 수</span>
-                    <strong id="dash-q-txt">4개 연동</strong>
+                    <strong id="dash-q-txt">0개 활동 연동</strong>
                   </div>
                 </div>
                 <div class="dash-recommendation-box">
-                  <strong>💡 AI 가이드 코멘트</strong>
-                  <p id="dash-tip-txt">학종을 설계하려면 컴퓨터공학의 소프트웨어 역량을 증빙할 수 있는 프로젝트와 독서 활동이 최소 3개 이상 필요합니다.</p>
+                  <strong>진로 준비 코멘트</strong>
+                  <p id="dash-tip-txt">학생 정보와 활동 기록을 입력하면 진로 준비 상태가 자동으로 계산됩니다.</p>
                 </div>
               </div>
             </div>
@@ -631,15 +708,15 @@
         <section class="view" data-panel="explore">
           <div class="page-title">
             <h1>진로 설계 및 탐색</h1>
-            <p>고등학교 입시부터 대학교 학과 분석, 커리어넷 오픈 API 연동 검색까지 한 곳에서 해결하는 진로브릿지 입시 포털입니다.</p>
+            <p>고등학교 입시부터 대학교 학과 분석, 직업·학과 검색까지 한 곳에서 해결하는 진로브릿지 입시 포털입니다.</p>
           </div>
           
           <div class="explore-tabs">
-            <button class="explore-tab-btn is-active" type="button" data-explore-tab="highschool">고입 탐색기</button>
-            <button class="explore-tab-btn" type="button" data-explore-tab="university">대입/대학 탐색기</button>
-            <button class="explore-tab-btn" type="button" data-explore-tab="psychology">진로 흥미 & 체험</button>
-            <button class="explore-tab-btn" type="button" data-explore-tab="careernet-search">커리어넷 백과사전</button>
-            <button class="explore-tab-btn" type="button" data-explore-tab="integrated">✨ 통합 로드맵 설계</button>
+            <button class="explore-tab-btn is-active" type="button" data-explore-tab="highschool">고입</button>
+            <button class="explore-tab-btn" type="button" data-explore-tab="university">대입</button>
+            <button class="explore-tab-btn" type="button" data-explore-tab="psychology">흥미·체험</button>
+            <button class="explore-tab-btn" type="button" data-explore-tab="careernet-search">직업·학과 검색</button>
+            <button class="explore-tab-btn" type="button" data-explore-tab="integrated">로드맵</button>
           </div>
 
           <!-- 1. 고입 탐색기 탭 -->
@@ -647,61 +724,112 @@
             <div class="explore-card" style="background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px rgba(18, 54, 110, 0.03);">
               <div class="card-header-actions">
                 <div>
-                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">전국 고등학교 입시 매칭기</h3>
-                  <p style="margin: 6px 0 0; font-size: 14px; color: var(--muted);">나의 관심 분야와 중학교 성적(성취도)을 기준으로 진학 가능한 특목고, 마이스터고, 자사고를 탐색합니다.</p>
+                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">고등학교 검색 및 고입 탐색기</h3>
+                  <p style="margin: 6px 0 0; font-size: 14px; color: var(--muted);">학교명, 지역, 유형, 관심 계열로 고등학교를 찾고 입시 준비 포인트를 확인합니다.</p>
                 </div>
               </div>
               <div class="filter-row" style="display: flex; gap: 16px; margin: 20px 0; flex-wrap: wrap;">
+                <div class="filter-group" style="flex: 2; min-width: 260px;">
+                  <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">학교명·지역·학과 검색</label>
+                  <input type="text" id="hs-search-input" placeholder="예: 선린, 과학고, 소프트웨어, 부산, 디자인" style="width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff;" />
+                </div>
+                <div class="filter-group" style="flex: 1; min-width: 160px;">
+                  <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">지역</label>
+                  <select id="hs-region-filter" style="width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff;">
+                    <option value="all">전체 지역</option>
+                    <option value="서울">서울</option>
+                    <option value="경기">경기</option>
+                    <option value="인천">인천</option>
+                    <option value="부산">부산</option>
+                    <option value="대구">대구</option>
+                    <option value="광주">광주</option>
+                    <option value="대전">대전</option>
+                    <option value="울산">울산</option>
+                    <option value="강원">강원</option>
+                    <option value="충북">충북</option>
+                    <option value="충남">충남</option>
+                    <option value="전북">전북</option>
+                    <option value="전남">전남</option>
+                    <option value="경북">경북</option>
+                    <option value="경남">경남</option>
+                    <option value="제주">제주</option>
+                  </select>
+                </div>
                 <div class="filter-group" style="flex: 1; min-width: 200px;">
                   <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">선호 고교 계열</label>
                   <select id="hs-type-filter" style="width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff;">
                     <option value="all">전체보기</option>
+                    <option value="영재학교">영재학교</option>
                     <option value="과학고">과학고/영재학교 (이공계열 특화)</option>
                     <option value="외고">외국어고/국제고 (어학/국제 특화)</option>
+                    <option value="국제고">국제고</option>
                     <option value="마이스터고">마이스터고 (산업연계 취업 특화)</option>
                     <option value="자사고">자사고 (종합 학업 역량 중심)</option>
                     <option value="특성화고">특성화고 (IT/미디어/조리/상업 기술)</option>
+                    <option value="예술고">예술고</option>
+                    <option value="체육고">체육고</option>
+                    <option value="일반고">일반고</option>
                   </select>
                 </div>
-                <div class="filter-group" style="flex: 1; min-width: 200px;">
-                  <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">내 중학교 내신 환산점수 (국영수사과 평균성취도)</label>
-                  <div style="display: flex; align-items: center; gap: 12px; margin-top: 10px;">
-                    <input type="range" id="hs-grade-range" min="60" max="100" value="92" style="flex: 1; height: 6px; background: var(--line); border-radius: 99px; outline: none; appearance: none; cursor: pointer;" />
-                    <span id="hs-grade-val" style="font-weight: 800; color: var(--blue); font-size: 16px; min-width: 45px;">92점</span>
-                  </div>
+                <div class="filter-group" style="flex: 1; min-width: 190px;">
+                  <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">관심 계열</label>
+                  <select id="hs-track-filter" style="width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff;">
+                    <option value="all">전체 계열</option>
+                    <option value="IT">IT·소프트웨어</option>
+                    <option value="과학">과학·수학</option>
+                    <option value="외국어">외국어·국제</option>
+                    <option value="상경">상업·경영</option>
+                    <option value="디자인">디자인·콘텐츠</option>
+                    <option value="로봇">로봇·자동화</option>
+                    <option value="전기전자">전기·전자</option>
+                    <option value="반도체">반도체</option>
+                    <option value="자동차">자동차</option>
+                    <option value="기계">기계</option>
+                    <option value="항공">항공</option>
+                    <option value="해양">해양</option>
+                    <option value="조리">조리·식품</option>
+                    <option value="보건">보건·복지</option>
+                    <option value="농생명">농생명</option>
+                    <option value="예술">예술</option>
+                    <option value="체육">체육</option>
+                  </select>
                 </div>
               </div>
+
+              <div id="hs-result-status" style="font-size: 13.5px; color: var(--muted); margin: -4px 0 12px; text-align: left;"></div>
               
-              <div class="highschool-grid" id="highschool-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; margin-top: 20px;">
+              <div class="highschool-grid" id="highschool-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; margin-top: 20px;">
                 <!-- Javascript로 매칭된 고교 리스트 렌더링 -->
               </div>
             </div>
           </div>
 
-          <!-- 2. 대입/대학 탐색기 탭 -->
+          <!-- 2. 대학교 검색 탭 -->
           <div class="explore-tab-content" id="explore-tab-university">
             <div class="explore-card" style="background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px rgba(18, 54, 110, 0.03);">
               <div class="card-header-actions">
                 <div>
-                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">대학알리미 & 어디가 결합 대입 매칭 엔진</h3>
-                  <p style="margin: 6px 0 0; font-size: 14px; color: var(--muted);">나의 고교 내신 등급과 모의고사 수능 성적을 대학알리미 취업률·등록금 공시 자료와 연동하여 합격 가능성을 진단합니다.</p>
+                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">대학교 정보 검색</h3>
+                  <p style="margin: 6px 0 0; font-size: 14px; color: var(--muted);">커리어넷 학교정보 API에서 대학교명, 지역, 학교종류, 주소, 홈페이지 정보를 불러옵니다.</p>
                 </div>
               </div>
               
               <div class="student-grade-sync" style="background: var(--blue-3); border: 1px solid #cfe0ff; border-radius: 12px; padding: 16px; margin: 20px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                 <div style="display: flex; align-items: center; gap: 16px;">
-                  <span style="font-size: 24px;">📊</span>
+                  <span style="font-size: 24px;">🏫</span>
                   <div style="text-align: left;">
-                    <strong style="color: var(--ink); font-size: 15px; display: block;">내 프로필 성적 동기화 완료</strong>
-                    <div style="font-size: 13.5px; color: var(--text); margin-top: 2px;">
-                      내신: <strong style="color: var(--blue);" id="univ-sync-gpa">2.3등급</strong> | 모의고사 백분위: <strong style="color: var(--blue);" id="univ-sync-mock">88%</strong>
-                    </div>
+                    <strong style="color: var(--ink); font-size: 15px; display: block;">실제 대학교 기본 정보</strong>
+                    <div style="font-size: 13.5px; color: var(--text); margin-top: 2px;">점수 예측 없이 커리어넷 학교정보 API 결과만 표시합니다.</div>
                   </div>
                 </div>
-                <button type="button" class="outline" data-view-jump="profile" style="padding: 8px 16px; height: 38px; font-size: 13.5px; border-radius: 8px; background: #fff; border: 1px solid var(--line); font-weight: 700; cursor: pointer;">성적 수정하러 마이페이지 가기</button>
+                <button type="button" class="outline" data-explore-tab-jump="careernet-search" style="padding: 8px 16px; height: 38px; font-size: 13.5px; border-radius: 8px; background: #fff; border: 1px solid var(--line); font-weight: 700; cursor: pointer;">학과 정보 검색하기</button>
               </div>
 
               <div class="filter-row" style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div class="filter-group" style="flex: 1.4; min-width: 220px;">
+                  <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">대학교명 검색</label>
+                  <input id="univ-search-input" type="text" placeholder="예: 서울, 부산, 간호, 과학기술" style="width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff;" />
+                </div>
                 <div class="filter-group" style="flex: 1; min-width: 150px;">
                   <label style="font-weight: 700; font-size: 13.5px; color: var(--text); display: block; margin-bottom: 6px;">대학 희망 권역</label>
                   <select id="univ-region-filter" style="width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff;">
@@ -723,17 +851,19 @@
                 </div>
               </div>
 
-              <!-- 대입 매칭 테이블 -->
+              <div id="univ-result-status" style="font-size: 13.5px; color: var(--muted); margin: -4px 0 12px; text-align: left;"></div>
+
+              <!-- 대학교 정보 테이블 -->
               <div style="overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; margin-top: 20px;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; min-width: 600px;">
                   <thead>
                     <tr style="background: #f8fbff; border-bottom: 1px solid var(--line);">
                       <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">대학명</th>
-                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">모집 학과</th>
-                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">취업률 (대학알리미)</th>
-                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">연평균 등록금</th>
-                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">추천 전형 (어디가)</th>
-                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">합격 예측</th>
+                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">지역</th>
+                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">학교종류</th>
+                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">설립</th>
+                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">주소</th>
+                      <th style="padding: 14px 16px; font-weight: 800; color: var(--ink);">상세</th>
                     </tr>
                   </thead>
                   <tbody id="univ-matching-tbody">
@@ -750,9 +880,9 @@
               <div class="test-intro-box" id="test-intro-box">
                 <div style="text-align: center; padding: 40px 20px;">
                   <span style="font-size: 48px; display: block; margin-bottom: 16px;">🧠</span>
-                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">5문항 초고속 AI 진로 흥미 검사</h3>
+                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">36문항 진로 흥미 정밀 검사</h3>
                   <p style="max-width: 500px; margin: 8px auto 24px; color: var(--muted); font-size: 14px; line-height: 1.6;">
-                    학생의 흥미와 가치관에 부합하는 계열 및 대표 직업을 진단합니다. 간이 검사가 종료되면 맞춤형 체험활동(꿈길 연계 프로그램)을 신청하실 수 있습니다.
+                    6가지 직업 흥미 유형을 5점 척도로 측정하고, 상위 흥미 코드와 관련 직업·학과·체험활동을 함께 정리합니다.
                   </p>
                   <button type="button" class="primary" id="btn-start-test" style="padding: 12px 32px; font-size: 15px; font-weight: 800; border: 0;">검사 시작하기</button>
                 </div>
@@ -760,45 +890,75 @@
 
               <!-- 질문 영역 -->
               <div class="test-question-box" id="test-question-box" style="display: none; padding: 30px; text-align: center;">
-                <div class="progress-indicator" style="margin-bottom: 24px; font-size: 13px; font-weight: 700; color: var(--blue);">문항 <span id="q-current-num">1</span> / 5</div>
+                <div class="progress-indicator" style="margin-bottom: 24px; font-size: 13px; font-weight: 700; color: var(--blue);">문항 <span id="q-current-num">1</span> / <span id="q-total-num">36</span></div>
                 <h3 id="q-text" style="font-size: 20px; color: var(--ink); margin-bottom: 30px; line-height: 1.5; font-weight: 800;">질문 내용이 이곳에 표시됩니다.</h3>
-                <div class="test-answers-list" style="display: flex; flex-direction: column; gap: 12px; max-width: 440px; margin: 0 auto;">
+                <div class="test-answers-list" style="display: flex; flex-direction: column; gap: 12px; max-width: 640px; margin: 0 auto;">
                   <!-- Dynamically Rendered answers -->
                 </div>
               </div>
 
-              <!-- 검사 결과 및 꿈길 추천 영역 -->
+              <!-- 검사 결과 및 추천 체험 영역 -->
               <div class="test-result-box" id="test-result-box" style="display: none; padding: 20px;">
                 <div style="text-align: center; border-bottom: 1px solid var(--soft-line); padding-bottom: 24px; margin-bottom: 24px;">
                   <span style="font-size: 40px;">🎯</span>
                   <h3 style="margin-top: 12px; font-size: 22px; color: var(--ink);">흥미 유형 분석 결과</h3>
-                  <div style="margin: 12px auto; display: inline-block; background: var(--blue-3); color: var(--blue); padding: 8px 16px; border-radius: 30px; font-weight: 800; font-size: 16px;" id="test-result-badge">공학 및 시스템 구축형 (Developer)</div>
+                  <div style="margin: 12px auto; display: inline-block; background: var(--blue-3); color: var(--blue); padding: 8px 16px; border-radius: 30px; font-weight: 800; font-size: 16px;" id="test-result-badge">직업 흥미 유형</div>
                   <p id="test-result-desc" style="max-width: 600px; margin: 16px auto 0; font-size: 14px; line-height: 1.6; color: var(--text);">
-                    논리적인 시스템 구조 설계와 기술적 문제 해결에 강한 흥미를 나타냅니다. 관련 학과로는 컴퓨터공학과, 소프트웨어학과 등이 적합하며, 추천 직업은 웹 개발자, 로봇 공학자, 보안 전문가 등입니다.
+                    검사를 완료하면 현실형, 탐구형, 예술형, 사회형, 진취형, 관습형 중 가까운 유형과 관련 직업·학과가 표시됩니다.
                   </p>
+                  <div id="test-score-summary" class="test-score-summary"></div>
                   <button type="button" class="outline" id="btn-restart-test" style="margin-top: 16px; padding: 6px 14px; font-size: 13px; border-radius: 6px; background: #fff; border: 1px solid var(--line); font-weight: 700; cursor: pointer;">검사 다시 받기</button>
                 </div>
 
-                <!-- 꿈길 체험 연계 프로그램 목록 -->
+                <!-- 체험 연계 프로그램 목록 -->
                 <div>
-                  <h4 style="margin: 0 0 8px; font-size: 16px; color: var(--ink); text-align: left;">💡 연계 추천 진로체험 프로그램 (꿈길 API 가상 매칭)</h4>
-                  <p style="font-size: 13.5px; color: var(--muted); margin: 0 0 16px; text-align: left;">내 흥미와 연동되는 지자체 및 연구소의 최신 직업 체험 활동 리스트입니다.</p>
+                  <h4 style="margin: 0 0 8px; font-size: 16px; color: var(--ink); text-align: left;">💡 연계 추천 진로체험 프로그램</h4>
+                  <p style="font-size: 13.5px; color: var(--muted); margin: 0 0 16px; text-align: left;">내 흥미와 연결되는 직업 체험 활동 리스트입니다.</p>
                   
                   <div class="experience-list" id="experience-program-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
                     <!-- Javascript로 동적 로드 -->
                   </div>
                 </div>
               </div>
+
+              <div class="interest-directory">
+                <div class="interest-directory-head">
+                  <div>
+                    <h4>직업군별 흥미 탐색</h4>
+                    <p>검사 결과와 별개로 모든 분야의 대표 직업군을 살펴볼 수 있습니다.</p>
+                  </div>
+                </div>
+                <div class="interest-field-grid" id="interest-field-grid"></div>
+              </div>
+
+              <div class="experience-directory">
+                <div class="interest-directory-head">
+                  <div>
+                    <h4>체험활동 분야별 찾기</h4>
+                    <p>보건, 교육, 공공안전, 예술, 공학 등 분야별 체험활동 예시를 확인합니다.</p>
+                  </div>
+                  <select id="experience-field-filter">
+                    <option value="all">전체 체험</option>
+                    <option value="현실형">현실형 체험</option>
+                    <option value="탐구형">탐구형 체험</option>
+                    <option value="예술형">예술형 체험</option>
+                    <option value="사회형">사회형 체험</option>
+                    <option value="진취형">진취형 체험</option>
+                    <option value="관습형">관습형 체험</option>
+                  </select>
+                </div>
+                <div class="experience-list" id="experience-directory-list"></div>
+              </div>
             </div>
           </div>
 
-          <!-- 4. 커리어넷 백과사전 탭 -->
+          <!-- 4. 직업·학과 검색 탭 -->
           <div class="explore-tab-content" id="explore-tab-careernet-search">
             <div class="explore-card" style="background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 24px; box-shadow: 0 8px 24px rgba(18, 54, 110, 0.03);">
               <div class="card-header-actions">
                 <div>
-                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">커리어넷 오픈 API 실시간 연동 백과사전</h3>
-                  <p style="margin: 6px 0 0; font-size: 14px; color: var(--muted);">커리어넷에 정식 등록된 직업 및 학과 사전을 실시간으로 검색하여 나에게 맞는 정보를 탐색하고, 관심 목록에 즉시 등록합니다.</p>
+                  <h3 style="margin: 0; font-size: 20px; color: var(--ink);">커리어넷 직업·학과 검색</h3>
+                  <p style="margin: 6px 0 0; font-size: 14px; color: var(--muted);">커리어넷 직업백과와 학과정보 API에서 실제 직업·학과 정보를 불러와 희망 진로로 등록합니다.</p>
                 </div>
               </div>
 
@@ -807,16 +967,28 @@
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <label style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: var(--ink); cursor: pointer;">
-                      <input type="radio" name="cn-search-type" value="jobs" checked style="width: 16px; height: 16px;" /> 직업 백과사전
+                      <input type="radio" name="cn-search-type" value="jobs" checked style="width: 16px; height: 16px;" /> 직업 검색
                     </label>
                     <label style="display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: var(--ink); cursor: pointer; margin-left: 12px;">
-                      <input type="radio" name="cn-search-type" value="majors" style="width: 16px; height: 16px;" /> 대학 학과사전
+                      <input type="radio" name="cn-search-type" value="majors" style="width: 16px; height: 16px;" /> 학과 검색
                     </label>
                   </div>
+                  <select id="cn-field-filter" style="margin-left: auto; min-width: 180px; height: 40px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; background: #fff; font-weight: 700; color: var(--text);">
+                    <option value="all">전체 분야</option>
+                    <option value="IT">IT·소프트웨어</option>
+                    <option value="보건">보건·의료</option>
+                    <option value="교육">교육</option>
+                    <option value="사회">사회·복지·법률</option>
+                    <option value="경영">경영·금융·마케팅</option>
+                    <option value="공학">공학·제조·건설</option>
+                    <option value="문화">문화·예술·콘텐츠</option>
+                    <option value="서비스">관광·조리·서비스</option>
+                    <option value="농생명">농생명·환경</option>
+                  </select>
                 </div>
                 
                 <div style="display: flex; gap: 8px;">
-                  <input type="text" id="cn-search-input" placeholder="검색어를 입력하세요 (예: 컴퓨터, 웹, 바이오, 경영)" style="flex: 1; height: 48px; border: 1px solid var(--line); border-radius: 10px; padding: 0 16px; font-size: 14.5px; outline: none; background: #fff;" />
+                  <input type="text" id="cn-search-input" placeholder="검색어 없이 검색하면 선택 분야 전체가 나와요 (예: 간호, 경찰, 건축, 조리, 항공)" style="flex: 1; height: 48px; border: 1px solid var(--line); border-radius: 10px; padding: 0 16px; font-size: 14.5px; outline: none; background: #fff;" />
                   <button type="button" class="primary" id="btn-cn-search" style="padding: 0 24px; font-weight: 800; font-size: 15px; height: 48px; border: 0; cursor: pointer;">검색하기</button>
                 </div>
               </div>
@@ -848,12 +1020,12 @@
                 
                 <div class="designer-form-grid">
                   <div class="form-section">
-                    <h4>1. 학생 기본 정보 (마이페이지 연계)</h4>
+                    <h4>1. 학생 기본 정보 (학생 정보 연계)</h4>
                     <div class="readonly-profile-info">
                       <p><strong>이름:</strong> <span id="rm-name">김브릿지</span></p>
                       <p><strong>학년:</strong> <span id="rm-grade">고등학교 2학년</span></p>
-                      <p><strong>희망 직업:</strong> <span id="rm-job">웹 개발자</span></p>
-                      <p><strong>희망 학과:</strong> <span id="rm-major">컴퓨터공학과</span></p>
+                      <p><strong>희망 직업:</strong> <span id="rm-job">미선택</span></p>
+                      <p><strong>희망 학과:</strong> <span id="rm-major">미선택</span></p>
                     </div>
                     <button type="button" class="btn-edit-profile" data-view-jump="profile">프로필 수정하러 가기 ↗</button>
                   </div>
@@ -862,7 +1034,7 @@
                     <h4>2. 대입 정보 및 전형 선택</h4>
                     <div class="input-row-grid">
                       <label>내신 등급 (GPA)
-                        <input type="number" id="rm-input-gpa" step="0.1" min="1.0" max="9.0" value="2.3" />
+                        <input type="number" id="rm-input-gpa" step="0.1" min="1.0" max="9.0" value="" placeholder="예: 2.3" />
                       </label>
                       <label>모의고사 백분위 (%)
                         <input type="number" id="rm-input-mock" step="1" min="0" max="100" value="88" />
@@ -891,12 +1063,12 @@
                 </div>
               </div>
 
-              <!-- 우측: AI 실시간 진단 요약 가이드 카드 (우측 공백 채우기!) -->
+              <!-- 우측: 진로 진단 요약 카드 -->
               <div class="roadmap-designer-sidebar">
                 <div class="ai-live-guide-card">
                   <div class="ai-avatar-section">
                     <span class="ai-glowing-dots"></span>
-                    <h4>AI 진로 컨설턴트 실시간 예측</h4>
+                    <h4>진로 준비도 요약</h4>
                   </div>
                   <div class="ai-feedback-live">
                     <div class="ai-stat-row">
@@ -917,7 +1089,7 @@
                     </div>
                   </div>
                   <div class="ai-advice-paragraph" id="ai-advice-paragraph">
-                    왼쪽 입력 폼에서 내신 및 연동할 비교과 활동을 선택하시면 종합 대입 안정도와 조언 코멘트가 실시간으로 분석됩니다.
+                    왼쪽 입력 폼에서 내신 및 연동할 비교과 활동을 선택하면 지원 준비도와 보완 코멘트가 정리됩니다.
                   </div>
                 </div>
               </div>
@@ -926,8 +1098,8 @@
             <!-- 로딩 화면 -->
             <div class="roadmap-loading-overlay" style="display: none;">
               <div class="spinner"></div>
-              <h3 id="loading-status-text">진로브릿지 AI 엔진 가동 중...</h3>
-              <p>기존 6대 기관의 공시 통계자료와 내 데이터를 결합하여 분석을 진행하고 있습니다.</p>
+              <h3 id="loading-status-text">진로브릿지 분석 중...</h3>
+              <p>내 성적, 관심 분야, 활동 기록을 바탕으로 분석을 진행하고 있습니다.</p>
               <div class="loading-progress-bar"><div class="progress-fill"></div></div>
             </div>
 
@@ -937,11 +1109,11 @@
                 <div>
                   <span class="badge-tag">통합 설계 완료</span>
                   <h2><span id="res-student-name">김브릿지</span> 학생의 맞춤형 진로 로드맵</h2>
-                  <p>희망 진로: <strong id="res-hope-job">웹 개발자</strong> | 희망 학과: <strong id="res-hope-major">컴퓨터공학과</strong></p>
+                  <p>희망 진로: <strong id="res-hope-job">미선택</strong> | 희망 학과: <strong id="res-hope-major">미선택</strong></p>
                 </div>
                 <div class="header-actions">
                   <button type="button" class="btn-print-roadmap outline">PDF 저장</button>
-                  <button type="button" class="btn-pin-roadmap teal-fill">마이페이지 고정</button>
+                  <button type="button" class="btn-pin-roadmap teal-fill">학생 정보에 고정</button>
                 </div>
               </div>
 
@@ -961,10 +1133,10 @@
                         <div class="bar-item"><span>협업 리더십</span><div class="bar-fill" style="width: 75%;"></div><em>75%</em></div>
                       </div>
                       <div class="step-action-card">
-                        <strong>💡 추천 액션 플랜 (커리어넷 결과 보완)</strong>
+                        <strong>💡 추천 액션 플랜</strong>
                         <ul>
                           <li>희망 직업 관련 도서 <strong>『소프트웨어 객체지향 설계』</strong> 독서 및 기록 남기기</li>
-                          <li>연동된 <strong>[<span class="active-title-placeholder">학교 홈페이지 제작</span>]</strong> 활동에서 발휘한 디지털 역량을 심화 탐구 보고서로 확장</li>
+                          <li>연동된 <strong>[<span class="active-title-placeholder">선택한 활동 없음</span>]</strong> 활동에서 발휘한 역량을 심화 탐구 보고서로 확장</li>
                         </ul>
                       </div>
                     </div>
@@ -976,7 +1148,7 @@
                   <div class="step-num">02</div>
                   <div class="step-content">
                     <h3>2단계: 학과 & 대학 최적 매칭</h3>
-                    <p class="step-summary">대학알리미 공시 데이터를 분석하여 장학금 및 취업률 기준 최적 대학 전공을 연계합니다.</p>
+                    <p class="step-summary">장학금 및 취업률 기준으로 최적 대학 전공을 연계합니다.</p>
                     <div class="step-details-box university-match-box">
                       <div class="univ-info-row">
                         <div class="univ-header">
@@ -1010,7 +1182,7 @@
                 <div class="timeline-step">
                   <div class="step-num">03</div>
                   <div class="step-content">
-                    <h3>3단계: 고교 과목 설계 & 꿈길 연계 활동</h3>
+                    <h3>3단계: 고교 과목 설계 & 진로 체험 활동</h3>
                     <p class="step-summary">고등학교 선택 과목 조합과 거주지 기반 맞춤형 진로체험처를 매핑합니다.</p>
                     <div class="step-details-box">
                       <div class="course-suggestions">
@@ -1024,32 +1196,32 @@
                         </div>
                       </div>
                       <div class="step-action-card">
-                        <strong>🚗 추천 체험 프로그램 (꿈길 실시간 연동)</strong>
+                        <strong>🚗 추천 체험 프로그램</strong>
                         <ul>
                           <li>[오프라인] 청소년 SW 융합 진로캠프 (인근 거주지역 연계 체험 가능처 추천)</li>
                           <li>[온라인] IT 해커톤 멘토링 프로그램 신청하기</li>
                         </ul>
-                        <button type="button" class="btn-add-road-todo" data-todo-title="꿈길 SW 융합 진로캠프 신청하기">체험 활동 투두에 추가 (+15P)</button>
+                        <button type="button" class="btn-add-road-todo" data-todo-title="SW 융합 진로캠프 신청하기">체험 활동 투두에 추가 (+15P)</button>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- 4단계: 대입 합격 전략 및 정성 평가 -->
+                <!-- 4단계: 대입 지원 전략 및 정성 평가 -->
                 <div class="timeline-step">
                   <div class="step-num">04</div>
                   <div class="step-content">
-                    <h3>4단계: 대입 합격 전략 & 정성 평가</h3>
-                    <p class="step-summary">어디가 성적 분석을 보완하여 내신 등급 분석과 내 생기부 기록의 정성 지수를 산출합니다.</p>
+                    <h3>4단계: 대입 지원 전략 & 정성 평가</h3>
+                    <p class="step-summary">내신 등급 분석과 내 생기부 기록의 정성 지수를 산출합니다.</p>
                     <div class="step-details-box strategy-box">
                       <div class="grades-analysis-section">
                         <div class="grade-badge-group">
-                          <div class="g-badge">내 내신 등급: <strong><span id="res-gpa">2.3</span></strong></div>
+                          <div class="g-badge">내 내신 등급: <strong><span id="res-gpa">미입력</span></strong></div>
                           <div class="g-badge">모의고사 백분위: <strong><span id="res-mock">88</span>%</strong></div>
                         </div>
                         <div class="gpa-comparison-graph">
                           <div class="graph-track"><div class="graph-fill" style="width: 82%;"></div></div>
-                          <div class="graph-labels"><span>합격 하한선: 2.8등급</span><span class="my-pos">내 위치: 2.3등급</span><span>합격 안정권: 2.1등급</span></div>
+                          <div class="graph-labels"><span>보완 기준: 2.8등급</span><span class="my-pos">내 위치: 미입력</span><span>준비 우수권: 2.1등급</span></div>
                         </div>
                       </div>
                       
@@ -1058,13 +1230,13 @@
                           <strong>내 활동 기반 학종 정성 경쟁력 지수</strong>
                           <span class="score-val" id="res-q-level">우수 (A+)</span>
                         </div>
-                        <p class="q-score-desc">입력된 <strong>[<span class="active-count-placeholder">3</span>개의 활동]</strong>(교내 홈페이지 제작 등)이 희망 전공인 컴퓨터공학의 디지털 역량을 명확히 입증하고 있어, 정성적 학생부 경쟁력이 내신 수치(2.3등급) 대비 매우 높게 평가됩니다.</p>
+                        <p class="q-score-desc">입력된 <strong>[<span class="active-count-placeholder">0</span>개의 활동]</strong>을 바탕으로 희망 전공과 연결되는 정성적 학생부 경쟁력을 분석합니다.</p>
                       </div>
 
                       <div class="step-action-card">
-                        <strong>🎯 최종 대입 합격 솔루션</strong>
+                        <strong>최종 대입 지원 솔루션</strong>
                         <ul>
-                          <li>내신이 안정권에 진입했으므로 <strong>학생부종합전형(학종)</strong>을 주력으로 설정</li>
+                          <li>내신과 활동 기록이 함께 준비되어 <strong>학생부종합전형(학종)</strong>을 주력으로 설정</li>
                           <li>수학 및 컴퓨터 관련 과목 세특에 <strong>'학교 홈페이지 기획 시 적용한 알고리즘(예: 트리 구조 탐색)'</strong>을 기술하여 전공 적합성 강조</li>
                           <li>수능 최저 등급 충족을 위해 <strong>모의고사 수학/영어 영역 백분위 90% 이상 유지</strong> 필요</li>
                         </ul>
@@ -1081,21 +1253,22 @@
 
         <section class="view empty-view" data-panel="feedback">
           <div class="page-title">
-            <h1>문의하기</h1>
-            <p>진로·대입 질문과 선생님 피드백을 모아 성장 방향을 확인해요.</p>
+            <h1>선생님 피드백</h1>
+            <p>활동 기록과 포트폴리오를 바탕으로 받은 보완 의견을 확인하고 반영 메모를 남겨요.</p>
           </div>
+          <div id="inquiry-result-area" style="display:none; margin-bottom: 16px;"></div>
           <div class="feedback-card">
             <span class="round-icon chat"></span>
             <div>
-              <h2>프로젝트 설명이 구체적이에요</h2>
-              <p>역할 분담과 문제 해결 과정을 조금 더 자세히 적으면 포트폴리오 완성도가 높아져요.</p>
+              <h2 id="feedback-card-title">아직 받은 피드백이 없어요</h2>
+              <p id="feedback-card-desc">선생님 피드백을 받으면 보완할 점과 반영 메모가 이곳에 표시됩니다.</p>
             </div>
           </div>
-          <form class="inquiry-form">
-            <label>문의 유형<select><option>진로 상담</option><option>대입 전형</option><option>포트폴리오</option><option>ZEP 전시관</option></select></label>
-            <label>문의 제목<input placeholder="궁금한 내용을 짧게 적어주세요" /></label>
-            <label>문의 내용<textarea placeholder="상황, 고민, 원하는 피드백을 적어주세요."></textarea></label>
-            <button type="button" class="primary">문의 남기기</button>
+          <form class="inquiry-form" id="inquiry-form">
+            <label>피드백 태그<select id="inquiry-type"><option>진로 연결성</option><option>프로젝트 과정</option><option>배운 점 보완</option><option>발표 자료 추천</option></select></label>
+            <label>반영 메모 제목<input id="inquiry-title" placeholder="반영할 내용을 짧게 적어주세요" /></label>
+            <label>반영 메모<textarea id="inquiry-content" placeholder="피드백을 어떻게 보완할지 적어주세요."></textarea></label>
+            <button type="button" class="primary" id="btn-inquiry-submit">반영 메모 저장</button>
           </form>
         </section>
       </section>
@@ -1110,42 +1283,37 @@
           <img class="mobile-nav-icon" src="assets/icons/record.svg" alt="" />
           <span>기록</span>
         </button>
-        <button class="mobile-nav-item" type="button" data-view="portfolio">
-          <img class="mobile-nav-icon" src="assets/icons/portfolio.svg" alt="" />
-          <span>포폴</span>
-        </button>
         <button class="mobile-nav-item" type="button" data-view="explore">
           <img class="mobile-nav-icon" src="assets/icons/explore.svg" alt="" />
-          <span>설계</span>
+          <span>탐색</span>
         </button>
-        <button class="mobile-nav-item" type="button" data-view="profile">
-          <img class="mobile-nav-icon" src="assets/icons/profile.svg" alt="" />
-          <span>내정보</span>
+        <button class="mobile-nav-item" type="button" data-view="career">
+          <img class="mobile-nav-icon" src="assets/icons/career.svg" alt="" />
+          <span>연결</span>
+        </button>
+        <button class="mobile-nav-item" type="button" data-view="zep">
+          <img class="mobile-nav-icon" src="assets/icons/zep.svg" alt="" />
+          <span>ZEP</span>
         </button>
       </nav>
 
-    <!-- 기존 시스템 체험용 시뮬레이터 모달 -->
-    <div class="simulator-modal" id="sys-simulator-modal" style="display: none;">
-      <div class="sim-modal-content">
+    <!-- ZEP 입장 모달 (심플) -->
+    <div class="simulator-modal" id="zep-enter-modal" style="display: none;">
+      <div class="sim-modal-content" style="max-width: 480px;">
         <header class="sim-modal-header">
-          <h3 id="sim-modal-title">시스템 시뮬레이터</h3>
-          <button type="button" class="sim-close-btn" id="btn-close-sim">&times;</button>
+          <h3>ZEP 전시관 연결</h3>
+          <button type="button" class="sim-close-btn" id="btn-close-zep-modal">&times;</button>
         </header>
-        <div class="sim-modal-body" id="sim-modal-body-content">
-          <!-- 시뮬레이터 내부 화면은 Javascript로 동적으로 랜더링함 -->
-        </div>
-        <div class="sim-disadvantage-highlight" id="sim-disadvantage-highlight" style="display: none;">
-          <div class="disadvantage-header">
-            <span class="warning-icon">⚠️</span>
-            <strong>기존 시스템의 치명적인 한계점 (단점)</strong>
+        <div style="padding: 28px; text-align: center;">
+          <div style="font-size: 42px; font-weight: 900; color: var(--blue); margin-bottom: 16px;">ZEP</div>
+          <h4 style="margin: 0 0 8px; font-size: 20px; color: var(--ink);">ZEP 전시관 연결 준비</h4>
+          <p style="color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 24px;">현재는 ZEP 사이트로 이동합니다. 학교 전시관을 실제로 연결하려면 별도 ZEP 스페이스 주소를 등록하면 됩니다.</p>
+          <div style="display: flex; flex-direction: column; gap: 12px; max-width: 300px; margin: 0 auto;">
+            <button type="button" class="primary" onclick="window.open('https://zep.us','_blank'); document.getElementById('zep-enter-modal').style.display='none';" style="height: 48px; border: 0; cursor: pointer; border-radius: 12px; font-size: 15px; font-weight: 800;">ZEP 사이트 열기</button>
+            <button type="button" class="outline" onclick="document.getElementById('zep-enter-modal').style.display='none'; setView('portfolio');" style="height: 44px; border: 1px solid var(--line); background: #fff; cursor: pointer; border-radius: 12px; font-size: 14px; font-weight: 700; color: var(--text);">포트폴리오 준비하기</button>
+            <button type="button" style="height: 36px; border: 0; background: transparent; cursor: pointer; font-size: 13px; color: var(--muted);" onclick="document.getElementById('zep-enter-modal').style.display='none';">닫기</button>
           </div>
-          <p id="sim-disadvantage-text">이곳에 시스템의 단점을 적습니다.</p>
         </div>
-        <footer class="sim-modal-footer">
-          <button type="button" class="primary" id="btn-sim-action">분석 실행하기</button>
-          <button type="button" class="teal-fill" id="btn-sim-solve-jobbridge" style="display: none;">✨ 진로브릿지로 단점 해결하기</button>
-          <button type="button" class="outline" id="btn-sim-close">체험 종료</button>
-        </footer>
       </div>
     </div>
     </main>

@@ -1,30 +1,42 @@
-// --- Serverless / Static Dual-Mode API Interceptor ---
+// --- Serverless / Static Storage Interceptor ---
 const isServerless = location.hostname.endsWith("github.io") || 
                      location.protocol === "file:" || 
                      (!location.port && location.hostname !== "localhost") || 
                      window.location.href.includes("github.io");
 
-const SIMULATED_FALLBACK_JOBS = [
-  { jobNm: "웹 개발자", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "대형 포털, 이커머스 등에서 웹 브라우저 기반의 사용자 인터페이스 및 서버 백엔드 시스템을 설계하고 개발합니다.", wage: "평균 4,500만원 내외", jobSeq: "1" },
-  { jobNm: "인공지능 전문가", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "딥러닝, 머신러닝 알고리즘을 설계하고 데이터 분석을 통해 자연어 처리, 이미지 인식, 자율 주행 등의 기술을 구현합니다.", wage: "평균 5,500만원 내외", jobSeq: "2" },
-  { jobNm: "정보보안 전문가", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "해킹, 바이러스 등 사이버 위협으로부터 데이터 및 IT 자산을 보호하고 보안 시스템을 운영 및 설계합니다.", wage: "평균 4,800만원 내외", jobSeq: "3" },
-  { jobNm: "생명공학 연구원", jobSe: "바이오/헬스케어", jobsFld: "자연과학/의료", summary: "유전공학, 세포학 기술을 응용하여 신약 개발, 유전자 변형 치료, 친환경 식량 자원 연구를 진행합니다.", wage: "평균 5,000만원 내외", jobSeq: "4" },
-  { jobNm: "UX/UI 디자이너", jobSe: "디자인/예술", jobsFld: "예술/디자인", summary: "사용자 리서치와 인터페이스 설계 기법을 바탕으로 모바일 앱이나 웹사이트의 사용 편의성과 미적 디자인을 총괄합니다.", wage: "평균 4,000만원 내외", jobSeq: "5" },
-  { jobNm: "로봇 공학자", jobSe: "기계/엔지니어링", jobsFld: "제조/기술", summary: "하드웨어 설계 및 제어 소프트웨어 개발을 결합하여 자율 이동 로봇, 스마트 공장 자동화 기기, 협동 로봇을 제작합니다.", wage: "평균 5,200만원 내외", jobSeq: "6" },
-  { jobNm: "빅데이터 분석가", jobSe: "IT/소프트웨어", jobsFld: "정보통신", summary: "수많은 비정형 데이터를 가공, 마이닝하여 트렌드를 규명하고 기업의 비즈니스적 의사결정을 돕는 예측 모델을 구축합니다.", wage: "평균 5,000만원 내외", jobSeq: "7" },
-  { jobNm: "반도체 공학자", jobSe: "기계/엔지니어링", jobsFld: "제조/기술", summary: "미세 공정 최적화 및 회로 설계를 통해 차세대 D램, 플래시 메모리, 비메모리 시스템 반도체를 설계하고 공정을 관리합니다.", wage: "평균 5,600만원 내외", jobSeq: "8" }
-];
+// Hide default name before auth loads (prevents "김브릿지" flash)
+document.addEventListener("DOMContentLoaded", () => {
+  const headerName = document.getElementById("header-user-name");
+  const storedUser = localStorage.getItem("currentUser");
+  if (!storedUser && headerName) {
+    headerName.textContent = "비회원";
+  }
+  const avatarMini = document.getElementById("avatar-initials-mini");
+  if (!storedUser && avatarMini) {
+    avatarMini.textContent = "비";
+  }
+});
 
-const SIMULATED_FALLBACK_MAJORS = [
-  { majorNm: "컴퓨터공학과", lClass: "공학계열", summary: "하드웨어와 소프트웨어를 아우르는 컴퓨터 시스템 전반과 알고리즘, 네트워크, 데이터베이스 등을 교육합니다.", jobNames: "웹 개발자, 시스템 프로그래머, 정보보안 전문가", majorSeq: "1" },
-  { majorNm: "소프트웨어학과", lClass: "공학계열", summary: "앱/웹 개발, 운영체제, 시스템 구조 등 실무 지향적 코딩 역량과 대형 소프트웨어 설계 방법론에 주력합니다.", jobNames: "앱 개발자, 웹 개발자, DevOps 엔지니어", majorSeq: "2" },
-  { majorNm: "인공지능학과", lClass: "공학계열", summary: "기계학습, 딥러닝, 빅데이터 처리, 인지 지능 등 미래형 지능 시스템 연구에 초점을 맞춥니다.", jobNames: "AI 연구원, 데이터 엔지니어, 빅데이터 분석가", majorSeq: "3" },
-  { majorNm: "전자공학과", lClass: "공학계열", summary: "반도체, 신호처리, 마이크로프로세서, 회로설계 등 전자소자 및 제어 기술의 기초를 다룹니다.", jobNames: "반도체 연구원, 디바이스 드라이버 개발자", majorSeq: "4" },
-  { majorNm: "생명공학과", lClass: "자연계열", summary: "생물체의 생명 현상을 화학, 물리, 공학적 관점에서 분석하고 이를 의료, 제약, 농업 등에 응용하는 기술을 배웁니다.", jobNames: "생명공학 연구원, 신약 개발 연구원", majorSeq: "5" },
-  { majorNm: "경영학과", lClass: "사회계열", summary: "마케팅, 인사 조직, 재무 회계, 생산 관리 등 기업 경영에 필요한 핵심 전략과 분석 도구를 체득합니다.", jobNames: "기업 기획원, 마케터, 재무 분석가", majorSeq: "6" },
-  { majorNm: "미디어커뮤니케이션학과", lClass: "인문계열", summary: "방송, 영상제작, 디지털 미디어 트렌드, 언론 보도, 콘텐츠 기획 전반을 연구합니다.", jobNames: "PD, 방송 기자, 영상 에디터, 미디어 크리에이터", majorSeq: "7" },
-  { majorNm: "디자인학과", lClass: "예술계열", summary: "시각 디자인, 산업 디자인, 영상 애니메이션 등 다양한 미디어를 기반으로 창의적 시각 표현과 사용자 경험을 탐구합니다.", jobNames: "UX/UI 디자이너, 그래픽 디자이너, 제품 디자이너", majorSeq: "8" }
-];
+function normalizeCareerText(value) {
+  return String(value || "").toLowerCase().replace(/[\s·ㆍ\-_\/()]/g, "");
+}
+
+function matchesCareerField(text, field = "all") {
+  if (field === "all") return true;
+  const normalizedText = normalizeCareerText(text);
+  const buckets = {
+    IT: ["it", "소프트웨어", "정보통신", "컴퓨터", "웹", "앱", "인공지능", "데이터", "보안", "게임"],
+    보건: ["보건", "의료", "간호", "의사", "약", "물리치료", "동물보건", "생명"],
+    교육: ["교육", "교사", "유아교육", "상담", "심리", "멘토링"],
+    사회: ["사회", "복지", "법", "경찰", "소방", "공공", "행정", "안전"],
+    경영: ["경영", "금융", "회계", "마케팅", "상품", "은행", "기획", "비즈니스", "경제"],
+    공학: ["공학", "전기", "전자", "기계", "건축", "토목", "자동차", "항공", "반도체", "화학", "제조"],
+    문화: ["문화", "예술", "디자인", "방송", "스포츠", "콘텐츠", "작가", "공연", "미디어"],
+    서비스: ["관광", "서비스", "조리", "호텔", "셰프", "음식", "외식"],
+    농생명: ["농", "환경", "생명", "스마트팜", "식품", "동물"]
+  };
+  return (buckets[field] || []).some((keyword) => normalizedText.includes(normalizeCareerText(keyword)));
+}
 
 function getMockDB() {
   let dbStr = localStorage.getItem("jobbridge_db");
@@ -34,30 +46,21 @@ function getMockDB() {
         "admin": {
           password: "admin",
           studentState: {
-            name: "관리자",
-            grade: "고등학교 2학년",
-            job: "웹 개발자",
-            major: "컴퓨터공학과",
-            gpa: 1.5,
-            mock: 120,
-            interests: ["웹프로그래밍", "디자인"],
-            intro: "기술로 사람들의 삶을 더 편리하게 만들고 싶어요!"
+            name: "admin",
+            grade: "",
+            job: "",
+            major: "",
+            gpa: 0,
+            mock: 0,
+            interests: [],
+            intro: "",
+            preferenceTags: [],
+            activityStyles: [],
+            interestProfile: null,
+            onboardingCompleted: false
           },
-          activities: [
-            {
-              title: "학급 홈페이지 제작",
-              date: "2026.05.26",
-              category: "프로젝트",
-              career: "웹 개발자",
-              content: "반별 소식과 자료를 공유할 수 있는 학급 홈페이지를 기획하고 제작했어요. 역할을 나누어 기획, 디자인, 구현을 진행했어요.",
-              learned: "HTML/CSS/JS 기본 사용법을 익혔고 팀 프로젝트 협업을 배웠어요."
-            }
-          ],
-          todos: [
-            { title: "활동 하나 기록하기", checked: false },
-            { title: "관심 직업 1개 탐색", checked: false },
-            { title: "포트폴리오 문장 다듬기", checked: false }
-          ],
+          activities: [],
+          todos: [],
           roadmap: null
         }
       }
@@ -106,29 +109,21 @@ function simulateApi(path, options, queryParams) {
       password,
       studentState: {
         name: username,
-        grade: '고등학교 2학년',
-        job: '웹 개발자',
-        major: '컴퓨터공학과',
-        gpa: 2.3,
-        mock: 88,
-        interests: ['웹프로그래밍', '앱 개발', '인공지능'],
-        intro: '기술로 사람들의 삶을 더 편리하게 만들고 싶어요!'
+        grade: '',
+        job: '',
+        major: '',
+        gpa: 0,
+        mock: 0,
+        interests: [],
+        intro: '',
+        preferenceTags: [],
+        activityStyles: [],
+        interestProfile: null,
+        onboardingCompleted: false,
+        ...(body.studentState || {})
       },
-      activities: [
-        {
-          title: '학급 홈페이지 제작',
-          date: '2026.05.26',
-          category: '프로젝트',
-          career: '웹 개발자',
-          content: '반별 소식과 자료를 공유할 수 있는 학급 홈페이지를 기획하고 제작했어요. 역할을 나누어 기획, 디자인, 구현을 진행했어요.',
-          learned: 'HTML/CSS/JS 기본 사용법을 익혔고 팀 프로젝트 협업을 배웠어요.'
-        }
-      ],
-      todos: [
-        { title: '활동 하나 기록하기', checked: false },
-        { title: '관심 직업 1개 탐색', checked: false },
-        { title: '포트폴리오 문장 다듬기', checked: false }
-      ],
+      activities: [],
+      todos: [],
       roadmap: null
     };
     saveMockDB(db);
@@ -200,44 +195,11 @@ function simulateApi(path, options, queryParams) {
     return { status: 200, body: { success: true } };
   }
   
-  if (path === "/api/careernet/jobs") {
-    const query = queryParams.query || "";
-    const filtered = SIMULATED_FALLBACK_JOBS.filter(j => 
-      j.jobNm.includes(query) || 
-      j.jobSe.includes(query) || 
-      j.summary.includes(query)
-    ).map(j => ({
-      name: j.jobNm,
-      category: j.jobSe,
-      field: j.jobsFld,
-      summary: j.summary,
-      wage: j.wage,
-      seq: j.jobSeq
-    }));
-    return { status: 200, body: filtered };
-  }
-  
-  if (path === "/api/careernet/majors") {
-    const query = queryParams.query || "";
-    const filtered = SIMULATED_FALLBACK_MAJORS.filter(m => 
-      m.majorNm.includes(query) || 
-      m.lClass.includes(query) || 
-      m.summary.includes(query)
-    ).map(m => ({
-      name: m.majorNm,
-      category: m.lClass,
-      summary: m.summary,
-      jobs: m.jobNames,
-      seq: m.majorSeq
-    }));
-    return { status: 200, body: filtered };
-  }
-  
   throw new Error("경로를 찾을 수 없습니다.");
 }
 
 if (isServerless) {
-  console.log("ℹ️ Running in Serverless Mode. Intercepting API calls to localStorage.");
+  console.log("ℹ️ Running in static mode. Using localStorage.");
   
   const originalFetch = window.fetch;
   window.fetch = async function(url, options) {
@@ -301,10 +263,179 @@ async function checkAuth() {
     setupLogoutListener();
     updateAuthUI(false);
   }
+
+  syncInterestFlow();
 }
 
 let isUsernameChecked = false;
 let checkedUsername = "";
+
+function escapeHtml(value = "") {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[char]));
+}
+
+const signupInterestTypes = {
+  R: {
+    label: "현실형(실행·기술)",
+    jobs: ["전기공학 기술자", "자동차 정비원", "항공정비사"],
+    majors: ["전기전자공학과", "기계공학과", "항공정비학과"]
+  },
+  I: {
+    label: "탐구형(분석·연구)",
+    jobs: ["생명공학 연구원", "환경공학 기술자", "데이터 분석가"],
+    majors: ["생명공학과", "환경공학과", "통계학과"]
+  },
+  A: {
+    label: "예술형(창작·표현)",
+    jobs: ["UX/UI 디자이너", "영상 편집자", "작가"],
+    majors: ["디자인학과", "미디어커뮤니케이션학과", "문예창작학과"]
+  },
+  S: {
+    label: "사회형(교육·돌봄)",
+    jobs: ["교사", "상담심리사", "간호사"],
+    majors: ["교육학과", "심리학과", "간호학과"]
+  },
+  E: {
+    label: "진취형(설득·경영)",
+    jobs: ["마케터", "상품기획자", "창업가"],
+    majors: ["경영학과", "광고홍보학과", "e-비즈니스과"]
+  },
+  C: {
+    label: "관습형(자료·사무)",
+    jobs: ["회계사", "은행원", "행정사무원"],
+    majors: ["회계학과", "경영정보학과", "행정학과"]
+  }
+};
+
+const signupInterestQuestions = [
+  { type: "R", text: "도구, 기계, 장비를 직접 만지며 원리를 확인하는 활동이 좋다." },
+  { type: "R", text: "말로 설명만 듣는 것보다 만들고 조립하며 배우는 편이 집중이 잘 된다." },
+  { type: "R", text: "자동차, 전기, 로봇, 항공, 기계 구조처럼 실제 작동하는 대상이 궁금하다." },
+  { type: "I", text: "자료를 찾아보고 가설을 세운 뒤 근거를 비교하는 활동이 흥미롭다." },
+  { type: "I", text: "과학, 수학, 데이터, 실험 결과를 분석할 때 시간이 잘 간다." },
+  { type: "I", text: "정답보다 왜 그런 결과가 나왔는지 끝까지 파고드는 편이다." },
+  { type: "A", text: "글, 그림, 영상, 디자인, 음악 등으로 내 생각을 표현하는 활동이 좋다." },
+  { type: "A", text: "정해진 양식보다 새로운 방식으로 결과물을 만드는 과제에 끌린다." },
+  { type: "A", text: "색, 화면 구성, 스토리, 분위기처럼 표현의 완성도를 자주 생각한다." },
+  { type: "S", text: "친구가 이해할 수 있게 설명하거나 도와줄 때 보람을 느낀다." },
+  { type: "S", text: "상담, 교육, 보건, 복지처럼 사람의 변화를 돕는 일에 관심이 있다." },
+  { type: "S", text: "혼자 빠르게 끝내는 것보다 함께 조율하며 해결하는 과정이 편하다." },
+  { type: "E", text: "아이디어를 제안하고 사람들을 설득해 일을 추진하는 활동이 좋다." },
+  { type: "E", text: "창업, 마케팅, 발표, 리더 역할처럼 목표를 세우고 실행하는 일에 끌린다." },
+  { type: "E", text: "결과를 숫자나 성과로 확인하고 다음 전략을 세우는 과정이 재미있다." },
+  { type: "C", text: "자료를 정리하고 기준에 맞게 분류하는 일을 차분히 처리하는 편이다." },
+  { type: "C", text: "계획표, 체크리스트, 기록 양식처럼 구조가 분명할수록 안정감을 느낀다." },
+  { type: "C", text: "회계, 행정, 금융, 문서 관리처럼 정확성이 필요한 일에 관심이 있다." }
+];
+
+function renderSignupInterestTest() {
+  const container = document.getElementById("signup-interest-questions");
+  if (!container || container.children.length) return;
+  signupInterestQuestions.forEach((question, index) => {
+    const card = document.createElement("article");
+    card.className = "signup-question-card";
+    card.dataset.signupQuestion = String(index);
+    card.dataset.type = question.type;
+    card.innerHTML = `
+      <p>${index + 1}. ${escapeHtml(question.text)}</p>
+      <div class="signup-scale" aria-label="동의 정도">
+        ${[1, 2, 3, 4, 5].map((value) => `<button type="button" data-value="${value}" title="${value}점">${value}</button>`).join("")}
+      </div>
+    `;
+    card.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        card.querySelectorAll("button").forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        updateSignupInterestPreview();
+      });
+    });
+    container.appendChild(card);
+  });
+}
+
+function readSignupInterestResult() {
+  const scores = Object.fromEntries(Object.keys(signupInterestTypes).map((key) => [key, 0]));
+  let answered = 0;
+  document.querySelectorAll(".signup-question-card").forEach((card) => {
+    const active = card.querySelector(".signup-scale button.is-active");
+    if (!active) return;
+    answered += 1;
+    scores[card.dataset.type] += Number(active.dataset.value || 0);
+  });
+  const ranked = Object.entries(scores)
+    .map(([key, score]) => ({ key, score, profile: signupInterestTypes[key] }))
+    .sort((a, b) => b.score - a.score);
+  return { answered, ranked, scores };
+}
+
+function selectedSignupValues(selector) {
+  return Array.from(document.querySelectorAll(`${selector} button.is-active`)).map((button) => button.dataset.signupChip || button.dataset.signupStyle || button.textContent.trim());
+}
+
+function updateSignupInterestPreview() {
+  const preview = document.getElementById("signup-result-preview");
+  if (!preview) return;
+  const { answered, ranked } = readSignupInterestResult();
+  const top = ranked.slice(0, 2).filter((item) => item.score > 0);
+  if (!top.length) {
+    preview.innerHTML = `<strong>검사 결과 미리보기</strong><p>문항에 답하면 상위 흥미 유형과 추천 직업·학과가 표시됩니다.</p>`;
+    return;
+  }
+  const jobs = Array.from(new Set(top.flatMap((item) => item.profile.jobs))).slice(0, 4);
+  const majors = Array.from(new Set(top.flatMap((item) => item.profile.majors))).slice(0, 4);
+  preview.innerHTML = `
+    <strong>${top.map((item) => `${item.profile.label} ${item.score}점`).join(" · ")}</strong>
+    <p>${answered}/${signupInterestQuestions.length}문항 응답. 추천 직업: ${jobs.join(", ")} / 추천 학과: ${majors.join(", ")}</p>
+  `;
+}
+
+function setupSignupChipButtons() {
+  document.querySelectorAll("#signup-detail-chips button, #signup-style-chips button").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      button.classList.toggle("is-active");
+      updateSignupInterestPreview();
+    });
+  });
+}
+
+function collectSignupOnboarding(username) {
+  const { answered, ranked, scores } = readSignupInterestResult();
+  const top = ranked.filter((item) => item.score > 0).slice(0, 3);
+  const preferenceTags = selectedSignupValues("#signup-detail-chips");
+  const activityStyles = selectedSignupValues("#signup-style-chips");
+  const primary = top[0]?.profile;
+  return {
+    answered,
+    studentState: {
+      name: document.getElementById("signup-name")?.value.trim() || username,
+      grade: document.getElementById("signup-grade")?.value || "",
+      job: primary?.jobs?.[0] || "",
+      major: primary?.majors?.[0] || "",
+      gpa: 0,
+      mock: 0,
+      interests: top.map((item) => item.profile.label),
+      intro: [...preferenceTags.slice(0, 3), ...activityStyles.slice(0, 2)].length
+        ? `${[...preferenceTags.slice(0, 3), ...activityStyles.slice(0, 2)].join(", ")}에 관심이 있습니다.`
+        : "",
+      preferenceTags,
+      activityStyles,
+      interestProfile: {
+        code: top.map((item) => item.key).join(""),
+        scores,
+        labels: top.map((item) => item.profile.label)
+      },
+      onboardingCompleted: answered === signupInterestQuestions.length
+    }
+  };
+}
 
 function setupAuthListeners() {
   const tabLogin = document.getElementById("tab-login");
@@ -319,6 +450,8 @@ function setupAuthListeners() {
   const confirmPasswordField = document.getElementById("confirm-password-field");
   const confirmPasswordInput = document.getElementById("auth-confirm-password");
   const usernameInput = document.getElementById("auth-username");
+  const signupOnboarding = document.getElementById("signup-onboarding");
+  const authCard = document.querySelector(".auth-card");
   
   let mode = "login";
   isUsernameChecked = false;
@@ -329,11 +462,13 @@ function setupAuthListeners() {
     tabSignup.classList.remove("is-active");
     btnAuthSubmit.textContent = "로그인";
     mode = "login";
+    authCard?.classList.remove("signup-mode");
     if (authError) authError.style.display = "none";
     if (confirmPasswordField) confirmPasswordField.style.display = "none";
     if (confirmPasswordInput) confirmPasswordInput.removeAttribute("required");
     if (btnCheckDuplicate) btnCheckDuplicate.style.display = "none";
     if (duplicateStatus) duplicateStatus.style.display = "none";
+    if (signupOnboarding) signupOnboarding.style.display = "none";
   });
   
   tabSignup?.addEventListener("click", () => {
@@ -341,10 +476,15 @@ function setupAuthListeners() {
     tabLogin.classList.remove("is-active");
     btnAuthSubmit.textContent = "회원가입";
     mode = "signup";
+    authCard?.classList.add("signup-mode");
+    renderSignupInterestTest();
+    setupSignupChipButtons();
+    updateSignupInterestPreview();
     if (authError) authError.style.display = "none";
     if (confirmPasswordField) confirmPasswordField.style.display = "block";
     if (confirmPasswordInput) confirmPasswordInput.setAttribute("required", "true");
     if (btnCheckDuplicate) btnCheckDuplicate.style.display = "inline-block";
+    if (signupOnboarding) signupOnboarding.style.display = "block";
     if (duplicateStatus) {
       duplicateStatus.style.display = "none";
       duplicateStatus.textContent = "";
@@ -422,6 +562,7 @@ function setupAuthListeners() {
     
     if (!username || !password) return;
 
+    let signupProfile = null;
     if (mode === "signup") {
       if (!isUsernameChecked || username !== checkedUsername) {
         if (authError) {
@@ -437,6 +578,28 @@ function setupAuthListeners() {
         }
         return;
       }
+      signupProfile = collectSignupOnboarding(username);
+      if (signupProfile.answered < signupInterestQuestions.length) {
+        if (authError) {
+          authError.textContent = `가입 진로 기초검사 ${signupInterestQuestions.length}문항을 모두 체크해 주세요.`;
+          authError.style.display = "block";
+        }
+        return;
+      }
+      if (!signupProfile.studentState.grade) {
+        if (authError) {
+          authError.textContent = "학년을 선택해 주세요.";
+          authError.style.display = "block";
+        }
+        return;
+      }
+      if (signupProfile.studentState.preferenceTags.length < 2) {
+        if (authError) {
+          authError.textContent = "세부 관심 분야를 2개 이상 선택해 주세요.";
+          authError.style.display = "block";
+        }
+        return;
+      }
     }
     
     const endpoint = mode === "login" ? "/api/login" : "/api/signup";
@@ -445,7 +608,7 @@ function setupAuthListeners() {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, studentState: signupProfile?.studentState })
       });
       
       const data = await response.json();
@@ -463,8 +626,13 @@ function setupAuthListeners() {
       if (appFrame) appFrame.style.display = "flex";
       
       await loadStudentData();
+      if (mode === "signup" && signupProfile?.studentState) {
+        Object.assign(studentState, signupProfile.studentState);
+        await saveStudentStateToServer();
+      }
       setupLogoutListener();
       updateAuthUI(true);
+      syncProfileInputsToUI();
       setView("home");
       showToast(`${currentUser}님, 반갑습니다!`);
     } catch (err) {
@@ -486,10 +654,39 @@ function setupLogoutListener() {
   });
 }
 
+function setupPasswordToggles() {
+  const togglePw = document.getElementById("btn-toggle-pw");
+  const pwInput = document.getElementById("auth-password");
+  togglePw?.addEventListener("click", () => {
+    const isHidden = pwInput?.type === "password";
+    if (pwInput) pwInput.type = isHidden ? "text" : "password";
+    if (togglePw) togglePw.textContent = isHidden ? "🙈" : "👁";
+  });
+
+  const toggleConfirmPw = document.getElementById("btn-toggle-confirm-pw");
+  const confirmPwInput = document.getElementById("auth-confirm-password");
+  toggleConfirmPw?.addEventListener("click", () => {
+    const isHidden = confirmPwInput?.type === "password";
+    if (confirmPwInput) confirmPwInput.type = isHidden ? "text" : "password";
+    if (toggleConfirmPw) toggleConfirmPw.textContent = isHidden ? "🙈" : "👁";
+  });
+}
+
+
 function updateAuthUI(isLoggedIn) {
   const btnLogin = document.getElementById("btn-login-desktop");
   const btnLogout = document.getElementById("btn-logout-desktop");
   const guestBanner = document.getElementById("guest-alert-banner");
+  document.body.classList.toggle("is-guest", !isLoggedIn);
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    const locked = protectedViews.has(button.dataset.view) && !isLoggedIn;
+    button.classList.toggle("requires-login", locked);
+    if (locked) {
+      button.setAttribute("aria-label", `${labels[button.dataset.view] || "회원 기능"} - 로그인 필요`);
+    } else {
+      button.removeAttribute("aria-label");
+    }
+  });
   
   if (isLoggedIn) {
     if (btnLogin) btnLogin.style.display = "none";
@@ -504,7 +701,10 @@ function updateAuthUI(isLoggedIn) {
 
 async function loadStudentData() {
   if (!currentUser) {
-    // Guest Mode: Load from localStorage or keep defaults
+    // Guest mode is read-only. Personal records are available after login.
+    ["guest_studentState", "guest_activities", "guest_todos", "guest_roadmap"].forEach((key) => {
+      localStorage.removeItem(key);
+    });
     const storedState = localStorage.getItem("guest_studentState");
     if (storedState) {
       Object.assign(studentState, JSON.parse(storedState));
@@ -527,22 +727,12 @@ async function loadStudentData() {
       if (activities.length > 0) {
         syncSelectedActivity(activities[0]);
         updatePortfolioFromRecord(activities[0]);
+      } else {
+        renderEmptyHistory();
       }
     } else {
-      // Default initial mock activities
-      const defaultActs = [
-        { title: "학교 홈페이지 제작", date: "2026.05.26", category: "프로젝트", career: "웹 개발자", content: "반별 소식과 자료를 공유할 수 있는 학급 홈페이지를 기획하고 제작했어요.", learned: "역할을 나누어 기획, 디자인, 구현을 진행하며 협업 역량을 키웠습니다.", feeling: "직접 코딩한 결과물이 실제 사용된다는 생각에 무척 뿌듯했습니다." },
-        { title: "IT 해커톤 참가", date: "2026.05.24", category: "대회", career: "소프트웨어 엔지니어", content: "24시간 동안 환경 문제를 해결하기 위한 IT 웹 서비스 아이디어를 도출하고 프로토타입을 만들었습니다.", learned: "React와 CSS를 이용해 빠른 UI 구현을 하는 방법을 체득했습니다.", feeling: "시간 압박 속에서 끝까지 완수하여 큰 자신감을 가졌습니다." },
-        { title: "「클린 코드」 독서", date: "2026.05.22", category: "독서", career: "소프트웨어 엔지니어", content: "가독성 높은 코드를 작성하기 위한 규칙과 리팩토링 사례를 공부했습니다.", learned: "네이밍 규칙, 함수 작성법, 주석 사용의 지양 등을 이해했습니다.", feeling: "내가 작성했던 코드를 반성하고 더 좋은 개발자가 되어야겠다고 다짐했습니다." }
-      ];
-      activitiesList = defaultActs;
-      defaultActs.forEach(record => {
-        prependSummary(record);
-        prependHistory(record);
-      });
-      syncSelectedActivity(defaultActs[0]);
-      updatePortfolioFromRecord(defaultActs[0]);
-      localStorage.setItem("guest_activities", JSON.stringify(defaultActs));
+      activitiesList = [];
+      renderEmptyHistory();
     }
     
     // Load todos
@@ -571,6 +761,12 @@ async function loadStudentData() {
         label.appendChild(document.createTextNode(" " + todoItem.title));
         
         input.onchange = async () => {
+          if (!currentUser) {
+            input.checked = !input.checked;
+            requireAuth("할 일 저장");
+            return;
+          }
+
           const checked = input.checked;
           document.querySelectorAll(`.daily-todo label`).forEach(lbl => {
             if (lbl.textContent.trim() === todoItem.title) {
@@ -647,6 +843,7 @@ async function loadStudentData() {
       updatePortfolioFromRecord(data.activities[0]);
     } else {
       activitiesList = [];
+      renderEmptyHistory();
     }
     
     if (data.todos) {
@@ -697,6 +894,21 @@ async function loadStudentData() {
       updateTodoCount();
     }
     
+    const dName = document.getElementById("profile-name");
+    const dGrade = document.getElementById("profile-grade");
+    const dJob = document.getElementById("profile-job");
+    const dMajor = document.getElementById("profile-major");
+    const dGpa = document.getElementById("profile-gpa");
+    const dMock = document.getElementById("profile-mock");
+    const dIntro = document.getElementById("profile-intro");
+    if (dName) dName.value = studentState.name;
+    if (dGrade) dGrade.value = studentState.grade;
+    if (dJob) dJob.value = studentState.job;
+    if (dMajor) dMajor.value = studentState.major;
+    if (dGpa) dGpa.value = studentState.gpa;
+    if (dMock) dMock.value = studentState.mock;
+    if (dIntro) dIntro.value = studentState.intro;
+    
     const resultPanel = document.querySelector(".roadmap-result-panel");
     const designerCard = document.querySelector(".roadmap-designer-card");
     if (data.roadmap) {
@@ -716,8 +928,7 @@ async function loadStudentData() {
 
 async function saveStudentStateToServer() {
   if (!currentUser) {
-    localStorage.setItem("guest_studentState", JSON.stringify(studentState));
-    return;
+    return requireAuth("학생 정보 저장");
   }
   try {
     await fetch("/api/student", {
@@ -728,21 +939,16 @@ async function saveStudentStateToServer() {
       },
       body: JSON.stringify({ studentState })
     });
+    return true;
   } catch (err) {
     console.error("Error saving student state", err);
+    return false;
   }
 }
 
 async function saveActivityToServer(record) {
   if (!currentUser) {
-    let activities = [];
-    const stored = localStorage.getItem("guest_activities");
-    if (stored) {
-      activities = JSON.parse(stored);
-    }
-    activities.unshift(record);
-    localStorage.setItem("guest_activities", JSON.stringify(activities));
-    return;
+    return requireAuth("활동 기록 저장");
   }
   try {
     await fetch("/api/activity", {
@@ -753,15 +959,16 @@ async function saveActivityToServer(record) {
       },
       body: JSON.stringify({ activity: record })
     });
+    return true;
   } catch (err) {
     console.error("Error saving activity", err);
+    return false;
   }
 }
 
 async function saveTodosToServer(todos) {
   if (!currentUser) {
-    localStorage.setItem("guest_todos", JSON.stringify(todos));
-    return;
+    return requireAuth("할 일 저장");
   }
   try {
     await fetch("/api/todo", {
@@ -772,8 +979,10 @@ async function saveTodosToServer(todos) {
       },
       body: JSON.stringify({ todos })
     });
+    return true;
   } catch (err) {
     console.error("Error saving todos", err);
+    return false;
   }
 }
 
@@ -806,8 +1015,7 @@ async function serializeAndSaveTodos() {
 
 async function saveRoadmapToServer(roadmapData) {
   if (!currentUser) {
-    localStorage.setItem("guest_roadmap", JSON.stringify(roadmapData));
-    return;
+    return requireAuth("로드맵 저장");
   }
   try {
     await fetch("/api/roadmap", {
@@ -818,8 +1026,10 @@ async function saveRoadmapToServer(roadmapData) {
       },
       body: JSON.stringify({ roadmap: roadmapData })
     });
+    return true;
   } catch (err) {
     console.error("Error saving roadmap", err);
+    return false;
   }
 }
 
@@ -830,16 +1040,16 @@ function renderRoadmapData(roadmapData) {
   const resGpa = document.getElementById("res-gpa");
   const resMock = document.getElementById("res-mock");
 
-  if (resStudentName) resStudentName.textContent = studentState.name;
-  if (resHopeJob) resHopeJob.textContent = studentState.job;
-  if (resHopeMajor) resHopeMajor.textContent = studentState.major;
+  if (resStudentName) resStudentName.textContent = studentState.name || "학생";
+  if (resHopeJob) resHopeJob.textContent = studentState.job || "미선택";
+  if (resHopeMajor) resHopeMajor.textContent = studentState.major || "미선택";
   if (resGpa) resGpa.textContent = studentState.gpa.toFixed(1);
   if (resMock) resMock.textContent = studentState.mock;
 
   const activeCount = roadmapData.checkedActs.length;
   document.querySelectorAll(".active-count-placeholder").forEach(el => el.textContent = String(activeCount));
 
-  const firstAct = roadmapData.checkedActs[0] || "학교 홈페이지 제작";
+  const firstAct = roadmapData.checkedActs[0] || "선택한 활동 없음";
   document.querySelectorAll(".active-title-placeholder").forEach(el => el.textContent = firstAct);
 
   const fillEl = document.querySelector(".gpa-comparison-graph .graph-fill");
@@ -873,14 +1083,18 @@ const panels = document.querySelectorAll("[data-panel]");
 const crumb = document.querySelector("[data-crumb]");
 
 let studentState = {
-  name: "김브릿지",
-  grade: "고등학교 2학년",
-  job: "웹 개발자",
-  major: "컴퓨터공학과",
-  gpa: 2.3,
-  mock: 88,
-  interests: ["웹프로그래밍", "앱 개발", "인공지능"],
-  intro: "기술로 사람들의 삶을 더 편리하게 만들고 싶어요!",
+  name: "",
+  grade: "",
+  job: "",
+  major: "",
+  gpa: 0,
+  mock: 0,
+  interests: [],
+  intro: "",
+  preferenceTags: [],
+  activityStyles: [],
+  interestProfile: null,
+  onboardingCompleted: false,
 };
 
 
@@ -891,18 +1105,118 @@ const labels = {
   explore: "진로 탐색",
   career: "진로 연결",
   zep: "ZEP 전시관",
-  feedback: "문의하기",
-  profile: "마이페이지",
+  feedback: "선생님 피드백",
+  profile: "학생 정보",
+  notifications: "알림",
 };
 
-const careerOptions = [
-  "웹 개발자",
-  "서비스 기획자",
-  "UI/UX 디자이너",
-  "데이터 분석가",
-  "인공지능 개발자",
-  "디지털 콘텐츠 기획자",
-];
+const protectedViews = new Set(["record", "portfolio", "profile", "feedback", "notifications"]);
+let activeView = "home";
+
+function cleanStudentDisplayName(name) {
+  const value = String(name || "").trim();
+  if (!value || /^ㅇ+$/i.test(value) || /^guest$/i.test(value) || /^[a-z]{1,3}$/i.test(value)) {
+    return "";
+  }
+  return value;
+}
+
+function getStudentDisplayName(fallback = "학생") {
+  return cleanStudentDisplayName(studentState.name) || fallback;
+}
+
+function getAvatarInitials() {
+  if (!currentUser) return "비";
+  const name = cleanStudentDisplayName(studentState.name);
+  if (!name) return "학";
+  const hangul = name.match(/[가-힣]/g);
+  if (hangul?.length) return hangul.slice(0, 2).join("");
+  return "학";
+}
+
+function openAuthScreen() {
+  const authScreen = document.getElementById("auth-screen");
+  if (authScreen) authScreen.style.display = "flex";
+}
+
+function requireAuth(actionName = "이 기능") {
+  showToast(`${actionName}은 로그인 후 사용할 수 있어요.`);
+  openAuthScreen();
+  return false;
+}
+
+const interestProfiles = {
+  "현실형(실행·기술)": {
+    job: "전기공학 기술자",
+    major: "전기전자공학과",
+    schoolType: "마이스터고",
+    school: "수도전기공업고등학교",
+    reason: "도구, 기계, 전기, 제작처럼 손으로 확인하며 해결하는 활동과 잘 맞아요.",
+    schoolReason: "전기·기계·자동화 분야 실습형 학교와 연결해 볼 수 있어요.",
+    nextAction: "제작·정비·실험 활동 하나 기록하기",
+    searchQuery: "전기공학 기술자"
+  },
+  "탐구형(분석·연구)": {
+    job: "생명공학 연구원",
+    major: "생명공학과",
+    schoolType: "과학고",
+    school: "한성과학고등학교",
+    reason: "자료를 분석하고 원리를 파고드는 과학·수학·연구 활동과 잘 연결돼요.",
+    schoolReason: "수학·과학 성취도와 탐구 보고서가 중요한 학교를 먼저 확인해요.",
+    nextAction: "탐구 주제와 가설 한 가지 정리하기",
+    searchQuery: "생명공학 연구원"
+  },
+  "예술형(창작·표현)": {
+    job: "디지털 콘텐츠 제작자",
+    major: "디지털콘텐츠과",
+    schoolType: "특성화고",
+    school: "한국애니메이션고등학교",
+    reason: "글, 그림, 영상, 디자인처럼 생각을 창작물로 표현하는 활동과 잘 맞아요.",
+    schoolReason: "작품 포트폴리오와 전공 적성을 보여줄 수 있는 학교가 어울려요.",
+    nextAction: "작품 또는 콘텐츠 결과물 하나 등록하기",
+    searchQuery: "디지털 콘텐츠 제작자"
+  },
+  "사회형(교육·돌봄)": {
+    job: "상담심리사",
+    major: "심리학과",
+    schoolType: "일반고",
+    school: "지역 일반고 진로중점 과정",
+    reason: "사람을 돕고 설명하며 관계 안에서 문제를 해결하는 활동과 잘 연결돼요.",
+    schoolReason: "교육·상담·복지 진로는 일반고 활동 기록과 봉사·멘토링 경험도 중요해요.",
+    nextAction: "멘토링·봉사·상담 관련 활동 기록하기",
+    searchQuery: "상담심리사"
+  },
+  "진취형(설득·경영)": {
+    job: "마케터",
+    major: "경영학과",
+    schoolType: "특성화고",
+    school: "서울금융고등학교",
+    reason: "사람을 설득하고 팀을 이끌며 아이디어를 사업이나 프로젝트로 만드는 활동과 맞아요.",
+    schoolReason: "경영·금융·창업 계열 활동을 보여주는 학교와 연결해 볼 수 있어요.",
+    nextAction: "시장 조사 또는 발표 활동 기록하기",
+    searchQuery: "마케터"
+  },
+  "관습형(자료·사무)": {
+    job: "회계사",
+    major: "회계학과",
+    schoolType: "특성화고",
+    school: "서울금융고등학교",
+    reason: "자료를 정확하게 정리하고 규칙, 숫자, 절차에 맞춰 일하는 활동과 잘 맞아요.",
+    schoolReason: "금융·회계·사무 계열 학교와 자격증·문서화 활동을 함께 준비해요.",
+    nextAction: "예산표·통계표·자료정리 활동 남기기",
+    searchQuery: "회계사"
+  }
+};
+
+const legacyInterestMap = {
+  "웹프로그래밍": "탐구형(분석·연구)",
+  "앱 개발": "탐구형(분석·연구)",
+  "인공지능": "탐구형(분석·연구)",
+  "디자인": "예술형(창작·표현)",
+  "e-비즈니스": "진취형(설득·경영)",
+  "창업": "진취형(설득·경영)",
+  "3D 모델링": "현실형(실행·기술)"
+};
 
 const iconByCategory = {
   독서: "book",
@@ -910,6 +1224,9 @@ const iconByCategory = {
   대회: "trophy",
   동아리: "people",
   진로체험: "briefcase",
+  봉사활동: "heart",
+  발표: "monitor",
+  "기타 활동": "clipboard",
 };
 
 const toast = document.createElement("div");
@@ -930,6 +1247,176 @@ function showToast(message) {
   }, 2300);
 }
 
+function primaryInterest() {
+  const first = studentState.interests?.[0];
+  return interestProfiles[first] ? first : "";
+}
+
+const emptyInterestProfile = {
+  job: "",
+  major: "",
+  schoolType: "",
+  school: "",
+  reason: "관심 분야를 선택하면 관련 직업이 표시됩니다.",
+  schoolReason: "관심 분야를 선택하면 추천 학교 정보가 표시됩니다.",
+  nextAction: "관심 분야를 먼저 선택해 주세요.",
+  searchQuery: ""
+};
+
+function currentInterestProfile() {
+  return interestProfiles[primaryInterest()] || emptyInterestProfile;
+}
+
+function refreshCareerSelectOptions() {
+  const careerSelect = document.getElementById("record-career");
+  if (!careerSelect) return;
+
+  const selectedCareers = Array.from(new Set([studentState.job].filter(Boolean)));
+  careerSelect.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = selectedCareers.length ? "관련 진로를 선택하세요" : "관심 분야 선택 후 표시됩니다";
+  careerSelect.appendChild(placeholder);
+
+  selectedCareers.forEach((career) => {
+    const option = document.createElement("option");
+    option.value = career;
+    option.textContent = career;
+    careerSelect.appendChild(option);
+  });
+}
+
+function setTextById(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+function syncInterestChipUI() {
+  const selected = new Set(studentState.interests || []);
+
+  document.querySelectorAll("[data-home-interest-chips] .flow-chip").forEach((chip) => {
+    chip.classList.toggle("is-selected", selected.has(chip.dataset.interest));
+  });
+
+  document.querySelectorAll(".chip-field .chip").forEach((chip) => {
+    chip.classList.toggle("selected", selected.has(chip.textContent.trim()));
+  });
+
+  document.querySelectorAll(".mobile-chips button").forEach((button) => {
+    const label = button.textContent.replace("✓", "").trim();
+    const isSelected = selected.has(label);
+    button.classList.toggle("selected", isSelected);
+    const check = button.querySelector("span");
+    if (isSelected && !check) {
+      const span = document.createElement("span");
+      span.textContent = "✓";
+      button.appendChild(span);
+    }
+    if (!isSelected && check) check.remove();
+  });
+}
+
+function renderNotifications() {
+  const profile = currentInterestProfile();
+  const activeCount = document.querySelectorAll(".summary-cards li").length;
+  const interestLabel = primaryInterest() || "관심 분야";
+  const notifications = [
+    {
+      title: profile.job ? `${interestLabel} 관심 분야가 ${profile.job} 추천으로 연결됐어요` : "관심 분야를 선택하면 진로 추천이 시작됩니다",
+      body: profile.major ? `${profile.major}, ${profile.school} 추천과 오늘 할 일까지 함께 갱신됐습니다.` : "학생 정보 화면에서 관심 분야와 희망 진로를 먼저 선택해 주세요.",
+      action: "추천 흐름 보기",
+      target: "home"
+    },
+    {
+      title: profile.schoolType ? `고입 탐색기에서 ${profile.schoolType} 계열을 먼저 확인해 보세요` : "학생 정보가 입력되면 고입 추천이 표시됩니다",
+      body: profile.schoolReason,
+      action: "고입 추천 열기",
+      target: "explore",
+      tab: "highschool"
+    },
+    {
+      title: `활동 기록 ${activeCount}개가 진로 연결에 반영 중이에요`,
+      body: activeCount >= 3 ? "로드맵 생성에 필요한 활동 근거가 충분합니다." : "활동 기록을 더 남기면 정성 평가 추천이 좋아집니다.",
+      action: activeCount >= 3 ? "로드맵 보기" : "활동 기록하기",
+      target: activeCount >= 3 ? "explore" : "record",
+      tab: activeCount >= 3 ? "integrated" : null
+    }
+  ];
+
+  const list = document.getElementById("notification-list");
+  const count = document.getElementById("notification-count");
+  if (count) count.textContent = String(notifications.length);
+  if (!list) return;
+
+  list.innerHTML = "";
+  notifications.forEach((item) => {
+    const article = document.createElement("article");
+    article.className = "notification-item";
+    article.innerHTML = `
+      <span class="notification-dot"></span>
+      <div>
+        <strong>${item.title}</strong>
+        <p>${item.body}</p>
+      </div>
+      <button type="button">${item.action}</button>
+    `;
+    article.querySelector("button")?.addEventListener("click", () => {
+      setView(item.target);
+      if (item.tab) {
+        window.setTimeout(() => document.querySelector(`[data-explore-tab="${item.tab}"]`)?.click(), 60);
+      }
+    });
+    list.appendChild(article);
+  });
+}
+
+function syncInterestFlow(options = {}) {
+  const profile = currentInterestProfile();
+  if (profile.job) studentState.job = profile.job;
+  if (profile.major) studentState.major = profile.major;
+
+  setTextById("flow-job", profile.job);
+  setTextById("flow-job-reason", profile.reason);
+  setTextById("flow-school", profile.school);
+  setTextById("flow-school-reason", profile.schoolReason);
+  setTextById("flow-major", profile.major);
+  setTextById("flow-major-reason", profile.major ? `${profile.major} 탐색과 대입 추천에 자동 반영돼요.` : "희망 학과를 선택하면 대입 추천에 반영됩니다.");
+  setTextById("flow-next-action", profile.nextAction);
+
+  syncInterestChipUI();
+  renderInterestMarks();
+  updateDigitalCardAndDashboard();
+  syncRoadmapInputs();
+  renderNotifications();
+
+  const careerSelect = document.getElementById("record-career");
+  if (careerSelect) refreshCareerSelectOptions();
+
+  const hsFilter = document.getElementById("hs-type-filter");
+  if (hsFilter && profile.schoolType) hsFilter.value = profile.schoolType;
+  window.jobbridgeRefreshExplore?.();
+
+  if (options.addTodo) {
+    if (profile.nextAction && profile.job) {
+      addTodoItem(profile.nextAction, { silent: true, unique: true });
+    }
+  }
+
+  if (options.persist) {
+    saveStudentStateToServer();
+  }
+}
+
+function setStudentInterests(interests, options = {}) {
+  const normalized = Array.from(new Set(interests.map((interest) => legacyInterestMap[interest] || interest).filter(Boolean)));
+  studentState.interests = normalized;
+  syncInterestFlow(options);
+  if (options.toast) {
+    showToast(`${primaryInterest() || "관심 분야"} 기준으로 직업, 고입, 활동 추천을 다시 연결했어요.`);
+  }
+}
+
 function todayText() {
   const today = new Date();
   const year = today.getFullYear();
@@ -939,6 +1426,13 @@ function todayText() {
 }
 
 function setView(view) {
+  if (protectedViews.has(view) && !currentUser) {
+    requireAuth(labels[view] || "회원 기능");
+    view = activeView || "home";
+  }
+
+  activeView = view;
+
   panels.forEach((panel) => {
     panel.classList.toggle("is-active", panel.dataset.panel === view);
   });
@@ -955,6 +1449,10 @@ function setView(view) {
 
   if (crumb) {
     crumb.textContent = labels[view] || "홈";
+  }
+
+  if (view === "notifications") {
+    renderNotifications();
   }
 
   const surface = document.querySelector(".main-content-surface");
@@ -989,7 +1487,7 @@ function syncSelectedActivity(record) {
   if (title) title.textContent = record.title;
   if (markWrap) {
     markWrap.innerHTML = "";
-    [record.category, record.career, "성장 기록"].forEach((tag) => {
+    [record.category, record.career, record.competencies || "성장 기록"].filter(Boolean).forEach((tag) => {
       const mark = document.createElement("mark");
       mark.textContent = tag;
       markWrap.appendChild(mark);
@@ -1004,19 +1502,44 @@ function syncSelectedActivity(record) {
   const majorList = cards[2]?.querySelector("ul");
 
   if (abilityList) {
-    abilityList.innerHTML = "<li>문제 해결</li><li>기획·정리</li><li>자기주도성</li>";
+    const competencies = (record.competencies || "문제 해결, 협업, 자기주도성")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    abilityList.innerHTML = "";
+    competencies.forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      abilityList.appendChild(li);
+    });
   }
   if (jobList) {
-    jobList.innerHTML = `<li>${record.career}</li><li>서비스 기획자</li><li>UI/UX 디자이너</li>`;
+    jobList.innerHTML = record.career ? `<li>${record.career}</li>` : "<li>관련 진로를 선택하면 표시됩니다</li>";
   }
   if (majorList) {
-    majorList.innerHTML = "<li>컴퓨터공학과</li><li>웹프로그래밍과</li><li>학생부종합 탐색</li>";
+    majorList.innerHTML = studentState.major ? `<li>${studentState.major}</li>` : "<li>희망 학과 선택 후 표시됩니다</li>";
   }
+}
+
+function renderEmptyHistory() {
+  const list = document.querySelector(".history-list");
+  if (!list) return;
+
+  list.innerHTML = `
+    <li class="history-empty">
+      <div>
+        <b>아직 기록이 없어요</b>
+        <small>활동 기록에서 첫 기록을 남겨보세요.</small>
+      </div>
+    </li>
+  `;
 }
 
 function prependHistory(record) {
   const list = document.querySelector(".history-list");
   if (!list) return;
+
+  list.querySelector(".history-empty")?.remove();
 
   const li = document.createElement("li");
   li.appendChild(createRoundIcon(record.category));
@@ -1025,7 +1548,7 @@ function prependHistory(record) {
   const title = document.createElement("b");
   const small = document.createElement("small");
   title.textContent = record.title;
-  small.textContent = `${record.category} · ${record.date}`;
+  small.textContent = record.date;
   body.append(title, small);
 
   const status = document.createElement("strong");
@@ -1062,10 +1585,10 @@ function updatePortfolioFromRecord(record) {
   const goalArticle = document.querySelector(".portfolio-list article:nth-child(5) p");
 
   if (activityArticle) {
-    activityArticle.textContent = `${record.title}, ${record.category} 활동`;
+    activityArticle.textContent = `${record.title}, ${record.category} 활동${record.role ? ` · 역할: ${record.role}` : ""}`;
   }
   if (resultArticle) {
-    resultArticle.textContent = record.learned || `${record.career}와 연결되는 결과물을 정리 중입니다.`;
+    resultArticle.textContent = record.learned || record.solution || `${record.career}와 연결되는 결과물을 정리 중입니다.`;
   }
   if (goalArticle) {
     goalArticle.textContent = `${record.career} 분야에서 사용자에게 도움이 되는 결과를 만들고 싶습니다.`;
@@ -1076,61 +1599,110 @@ function setupRecordForm() {
   const form = document.querySelector(".record-form");
   if (!form) return;
 
-  const careerSelect = form.querySelector("select");
-  if (careerSelect && careerSelect.options.length <= 1) {
-    careerOptions.forEach((career) => {
-      const option = document.createElement("option");
-      option.textContent = career;
-      option.value = career;
-      careerSelect.appendChild(option);
-    });
+  // Set up career select options
+  const careerSelect = document.getElementById("record-career");
+  if (careerSelect) refreshCareerSelectOptions();
+
+  // Set today as default date
+  const dateInput = document.getElementById("record-date");
+  if (dateInput && !dateInput.value) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
   }
 
   const saveButton = form.querySelector(".primary");
   const cancelButton = form.querySelector(".ghost");
   const addFileButton = form.querySelector(".add-file");
   const uploadBox = form.querySelector(".upload-box");
-  const dateInput = form.querySelectorAll("input")[1];
-
-  if (dateInput && !dateInput.value) {
-    dateInput.value = todayText();
-  }
 
   saveButton?.addEventListener("click", async () => {
-    const inputs = form.querySelectorAll("input");
-    const textareas = form.querySelectorAll("textarea");
-    const title = inputs[0]?.value.trim() || "새 활동 기록";
-    const date = inputs[1]?.value.trim() || todayText();
-    const category = selectedCategory();
-    const career = careerSelect?.value && !careerSelect.value.includes("선택") ? careerSelect.value : "웹 개발자";
+    const titleInput = document.getElementById("record-title");
+    const dateInputEl = document.getElementById("record-date");
+    const categorySelect = document.getElementById("record-category");
+    const contentTA = document.getElementById("record-content");
+    const roleInput = document.getElementById("record-role");
+    const competencyInput = document.getElementById("record-competency");
+    const learnedTA = document.getElementById("record-learned");
+    const feelingTA = document.getElementById("record-feeling");
+    const difficultyTA = document.getElementById("record-difficulty");
+    const solutionTA = document.getElementById("record-solution");
+    const careerSel = document.getElementById("record-career");
+    const linkInput = document.getElementById("record-link");
+
+    const title = titleInput?.value.trim();
+    if (!title) {
+      showToast("⚠️ 활동 제목을 입력해 주세요.");
+      titleInput?.focus();
+      return;
+    }
+
+    // Format date from YYYY-MM-DD to YYYY.MM.DD
+    const rawDate = dateInputEl?.value || "";
+    const date = rawDate ? rawDate.replace(/-/g, ".") : todayText();
+    const category = categorySelect?.value || "프로젝트";
+    const career = careerSel?.value || "";
+    if (!career) {
+      showToast("관련 진로를 먼저 선택해 주세요.");
+      careerSel?.focus();
+      return;
+    }
 
     const record = {
       title,
       date,
       category,
       career,
-      content: textareas[0]?.value.trim(),
-      learned: textareas[1]?.value.trim(),
-      feeling: textareas[2]?.value.trim(),
+      content: contentTA?.value.trim() || "",
+      role: roleInput?.value.trim() || "",
+      competencies: competencyInput?.value.trim() || "",
+      learned: learnedTA?.value.trim() || "",
+      feeling: feelingTA?.value.trim() || "",
+      difficulty: difficultyTA?.value.trim() || "",
+      solution: solutionTA?.value.trim() || "",
+      link: linkInput?.value.trim() || "",
     };
+
+    const saved = await saveActivityToServer(record);
+    if (!saved) return;
 
     prependHistory(record);
     prependSummary(record);
     syncSelectedActivity(record);
     updatePortfolioFromRecord(record);
+
     const firstTodo = document.querySelector(".daily-todo input[type='checkbox']");
     if (firstTodo && !firstTodo.checked) {
       firstTodo.checked = true;
       firstTodo.dispatchEvent(new Event("change"));
     }
     activitiesList.unshift(record);
-    await saveActivityToServer(record);
-    showToast("활동 기록이 저장되고 진로 연결에 반영됐어요.");
+
+    // Reset form after save
+    if (titleInput) titleInput.value = "";
+    if (contentTA) contentTA.value = "";
+    if (roleInput) roleInput.value = "";
+    if (competencyInput) competencyInput.value = "";
+    if (learnedTA) learnedTA.value = "";
+    if (feelingTA) feelingTA.value = "";
+    if (difficultyTA) difficultyTA.value = "";
+    if (solutionTA) solutionTA.value = "";
+    if (linkInput) linkInput.value = "";
+    if (careerSel) careerSel.selectedIndex = 0;
+    if (categorySelect) categorySelect.selectedIndex = 1;
+    const todayD = new Date();
+    if (dateInputEl) dateInputEl.value = `${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,"0")}-${String(todayD.getDate()).padStart(2,"0")}`;
+
+    showToast("✅ 활동 기록이 저장됐어요!");
   });
 
   cancelButton?.addEventListener("click", () => {
     form.reset();
-    if (dateInput) dateInput.value = todayText();
+    const todayD = new Date();
+    const dateInputEl = document.getElementById("record-date");
+    if (dateInputEl) dateInputEl.value = `${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,"0")}-${String(todayD.getDate()).padStart(2,"0")}`;
     showToast("입력 내용을 비웠어요.");
   });
 
@@ -1150,9 +1722,33 @@ function setupCategoryTabs() {
       document.querySelectorAll(".category-tabs button").forEach((button) => {
         button.classList.toggle("is-active", button === tab);
       });
-      showToast(`${tab.textContent.trim()} 활동을 선택했어요.`);
+      const selectedCat = tab.textContent.trim();
+      filterActivityList(selectedCat);
     });
   });
+}
+
+function filterActivityList(category) {
+  const historyList = document.querySelector(".history-list");
+  const summaryCards = document.querySelector(".summary-cards");
+  if (!historyList) return;
+
+  const filterFn = category === "전체" ? 
+    () => true : 
+    (record) => record.category === category;
+
+  const toRender = activitiesList.filter(filterFn);
+  historyList.innerHTML = "";
+  if (summaryCards) summaryCards.innerHTML = "";
+
+  toRender.forEach(record => {
+    prependHistory(record);
+    if (summaryCards) prependSummary(record);
+  });
+
+  if (toRender.length === 0) {
+    historyList.innerHTML = `<li style="text-align:center;color:var(--muted);padding:24px;">해당 카테고리의 기록이 없어요.</li>`;
+  }
 }
 
 function selectedInterests() {
@@ -1164,7 +1760,7 @@ function renderInterestMarks() {
   if (!target) return;
 
   target.innerHTML = "";
-  selectedInterests().forEach((interest) => {
+  (studentState.interests || selectedInterests()).forEach((interest) => {
     const mark = document.createElement("mark");
     mark.textContent = interest;
     target.appendChild(mark);
@@ -1183,26 +1779,30 @@ function updateDigitalCardAndDashboard() {
   const dashQ = document.getElementById("dash-q-txt");
   const dashTip = document.getElementById("dash-tip-txt");
 
-  if (cardName) cardName.textContent = studentState.name;
-  if (cardGrade) cardGrade.textContent = studentState.grade;
-  if (cardJob) cardJob.textContent = studentState.job;
-  if (cardMajor) cardMajor.textContent = studentState.major;
+  if (cardName) cardName.textContent = cleanStudentDisplayName(studentState.name) || "이름 미입력";
+  if (cardGrade) cardGrade.textContent = studentState.grade || "학년 미입력";
+  if (cardJob) cardJob.textContent = studentState.job || "희망 직업 미선택";
+  if (cardMajor) cardMajor.textContent = studentState.major || "희망 학과 미선택";
 
   if (cardInterests) {
     cardInterests.innerHTML = "";
-    studentState.interests.forEach(interest => {
+    const visibleTags = Array.from(new Set([
+      ...(studentState.interests || []),
+      ...(studentState.preferenceTags || [])
+    ])).slice(0, 6);
+    visibleTags.forEach(interest => {
       const mark = document.createElement("mark");
       mark.textContent = interest;
       cardInterests.appendChild(mark);
     });
   }
 
-  if (dashGpa) dashGpa.textContent = `${studentState.gpa.toFixed(1)}등급`;
-  if (dashMock) dashMock.textContent = `${studentState.mock}%`;
+  if (dashGpa) dashGpa.textContent = studentState.gpa ? `${studentState.gpa.toFixed(1)}등급` : "미입력";
+  if (dashMock) dashMock.textContent = studentState.mock ? `${studentState.mock}%` : "미입력";
 
   // Update initials on avatars
-  const initials = currentUser ? (studentState.name ? studentState.name.substring(0, 2).toUpperCase() : "KB") : "GS";
-  const headerNameText = currentUser ? `${studentState.name} 학생` : "ㅇㅇㅇ 학생";
+  const initials = getAvatarInitials();
+  const headerNameText = currentUser ? `${getStudentDisplayName()} 님` : "비회원";
   const headerName = document.getElementById("header-user-name");
   if (headerName) headerName.textContent = headerNameText;
   
@@ -1241,8 +1841,8 @@ function syncProfileInputsToUI() {
   if (dGrade) dGrade.value = studentState.grade;
   if (dJob) dJob.value = studentState.job;
   if (dMajor) dMajor.value = studentState.major;
-  if (dGpa) dGpa.value = studentState.gpa;
-  if (dMock) dMock.value = studentState.mock;
+  if (dGpa) dGpa.value = studentState.gpa || "";
+  if (dMock) dMock.value = studentState.mock || "";
   if (dIntro) dIntro.value = studentState.intro;
 
   // Tablet
@@ -1257,8 +1857,8 @@ function syncProfileInputsToUI() {
   if (tGrade) tGrade.value = studentState.grade;
   if (tJob) tJob.value = studentState.job;
   if (tMajor) tMajor.value = studentState.major;
-  if (tGpa) tGpa.value = studentState.gpa;
-  if (tMock) tMock.value = studentState.mock;
+  if (tGpa) tGpa.value = studentState.gpa || "";
+  if (tMock) tMock.value = studentState.mock || "";
 
   // Mobile
   const mName = document.getElementById("mobile-name");
@@ -1272,29 +1872,32 @@ function syncProfileInputsToUI() {
   if (mGrade) mGrade.value = studentState.grade;
   if (mJob) mJob.value = studentState.job;
   if (mMajor) mMajor.value = studentState.major;
-  if (mGpa) mGpa.value = studentState.gpa;
-  if (mMock) mMock.value = studentState.mock;
+  if (mGpa) mGpa.value = studentState.gpa || "";
+  if (mMock) mMock.value = studentState.mock || "";
 
   const profileName = document.getElementById("header-user-name");
   const previewName = document.querySelector(".preview-card h3");
   const previewGrade = document.getElementById("preview-grade");
-  if (profileName) profileName.textContent = currentUser ? `${studentState.name} 학생` : "ㅇㅇㅇ 학생";
-  if (previewName) previewName.textContent = studentState.name;
-  if (previewGrade) previewGrade.textContent = studentState.grade;
+  if (profileName) profileName.textContent = currentUser ? `${getStudentDisplayName()} 님` : "비회원";
+  if (previewName) previewName.textContent = cleanStudentDisplayName(studentState.name) || "이름 미입력";
+  if (previewGrade) previewGrade.textContent = studentState.grade || "학년 미입력";
 
   const goalArticle = document.querySelector(".portfolio-list article:nth-child(5) p");
   if (goalArticle) {
-    goalArticle.textContent = `${studentState.job} 분야에서 ${studentState.major} 진학을 통해 전문가로 성장하고 싶습니다.`;
+    goalArticle.textContent = studentState.job && studentState.major
+      ? `${studentState.job} 분야에서 ${studentState.major} 진학을 통해 전문가로 성장하고 싶습니다.`
+      : "희망 직업과 학과를 선택하면 진로 목표 문장이 표시됩니다.";
   }
 
   // Update digital ID card and dashboard
+  refreshCareerSelectOptions();
   updateDigitalCardAndDashboard();
 }
 
 function setupProfileForm() {
   syncProfileInputsToUI();
 
-  // 실시간 입력 연동 (디지털 진로 카드 피드백 제공)
+  // 입력값 기반 디지털 진로 카드 피드백 제공
   const dName = document.getElementById("profile-name");
   const dGrade = document.getElementById("profile-grade");
   const dJob = document.getElementById("profile-job");
@@ -1304,27 +1907,28 @@ function setupProfileForm() {
   const dIntro = document.getElementById("profile-intro");
 
   dName?.addEventListener("input", (e) => {
-    studentState.name = e.target.value.trim() || "김브릿지";
+    studentState.name = e.target.value.trim();
     updateDigitalCardAndDashboard();
   });
   dGrade?.addEventListener("change", (e) => {
     studentState.grade = e.target.value;
     updateDigitalCardAndDashboard();
   });
-  dJob?.addEventListener("change", (e) => {
-    studentState.job = e.target.value;
+  dJob?.addEventListener("input", (e) => {
+    studentState.job = e.target.value.trim();
+    refreshCareerSelectOptions();
     updateDigitalCardAndDashboard();
   });
-  dMajor?.addEventListener("change", (e) => {
-    studentState.major = e.target.value;
+  dMajor?.addEventListener("input", (e) => {
+    studentState.major = e.target.value.trim();
     updateDigitalCardAndDashboard();
   });
   dGpa?.addEventListener("input", (e) => {
-    studentState.gpa = parseFloat(e.target.value) || 2.3;
+    studentState.gpa = parseFloat(e.target.value) || 0;
     updateDigitalCardAndDashboard();
   });
   dMock?.addEventListener("input", (e) => {
-    studentState.mock = parseInt(e.target.value) || 88;
+    studentState.mock = parseInt(e.target.value) || 0;
     updateDigitalCardAndDashboard();
   });
   dIntro?.addEventListener("input", (e) => {
@@ -1334,9 +1938,10 @@ function setupProfileForm() {
   document.querySelectorAll(".chip-field .chip").forEach((chip) => {
     chip.addEventListener("click", () => {
       chip.classList.toggle("selected");
-      studentState.interests = Array.from(document.querySelectorAll(".chip-field .chip.selected")).map(c => c.textContent.trim());
-      updateDigitalCardAndDashboard();
-      renderInterestMarks();
+      setStudentInterests(
+        Array.from(document.querySelectorAll(".chip-field .chip.selected")).map(c => c.textContent.trim()),
+        { persist: true, addTodo: true, toast: true }
+      );
     });
   });
 
@@ -1352,50 +1957,57 @@ function setupProfileForm() {
       if (!button.classList.contains("selected") && check) {
         check.remove();
       }
-      studentState.interests = Array.from(document.querySelectorAll(".mobile-chips button.selected")).map(b => b.textContent.replace("✓", "").trim());
-      updateDigitalCardAndDashboard();
-      renderInterestMarks();
+      setStudentInterests(
+        Array.from(document.querySelectorAll(".mobile-chips button.selected")).map(b => b.textContent.replace("✓", "").trim()),
+        { persist: true, addTodo: true, toast: true }
+      );
     });
   });
 
   document.querySelector(".student-form:not(.tablet-card) .primary")?.addEventListener("click", async () => {
-    studentState.name = document.getElementById("profile-name")?.value.trim() || studentState.name;
-    studentState.grade = document.getElementById("profile-grade")?.value || studentState.grade;
-    studentState.job = document.getElementById("profile-job")?.value || studentState.job;
-    studentState.major = document.getElementById("profile-major")?.value || studentState.major;
-    studentState.gpa = parseFloat(document.getElementById("profile-gpa")?.value) || studentState.gpa;
-    studentState.mock = parseInt(document.getElementById("profile-mock")?.value) || studentState.mock;
-    studentState.intro = document.getElementById("profile-intro")?.value.trim() || studentState.intro;
+    studentState.name = document.getElementById("profile-name")?.value.trim() || "";
+    studentState.grade = document.getElementById("profile-grade")?.value || "";
+    studentState.job = document.getElementById("profile-job")?.value.trim() || "";
+    studentState.major = document.getElementById("profile-major")?.value.trim() || "";
+    studentState.gpa = parseFloat(document.getElementById("profile-gpa")?.value) || 0;
+    studentState.mock = parseInt(document.getElementById("profile-mock")?.value) || 0;
+    studentState.intro = document.getElementById("profile-intro")?.value.trim() || "";
+
+    const saveBtn = document.querySelector(".student-form:not(.tablet-card) .primary");
+    if (saveBtn) { saveBtn.textContent = "저장 완료 ✓"; saveBtn.style.background = "#059669"; }
+    setTimeout(() => {
+      if (saveBtn) { saveBtn.textContent = "저장하기"; saveBtn.style.background = ""; }
+    }, 2000);
 
     syncProfileInputsToUI();
-    renderInterestMarks();
+    syncInterestFlow({ persist: true });
     await saveStudentStateToServer();
-    showToast("학생 정보(데스크톱)가 저장됐어요.");
+    showToast("✅ 학생 정보가 저장됐어요.");
   });
 
   document.querySelector(".student-form.tablet-card .primary")?.addEventListener("click", () => {
-    studentState.name = document.getElementById("tablet-name")?.value.trim() || studentState.name;
-    studentState.grade = document.getElementById("tablet-grade")?.value || studentState.grade;
-    studentState.job = document.getElementById("tablet-job")?.value || studentState.job;
-    studentState.major = document.getElementById("tablet-major")?.value || studentState.major;
-    studentState.gpa = parseFloat(document.getElementById("tablet-gpa")?.value) || studentState.gpa;
-    studentState.mock = parseInt(document.getElementById("tablet-mock")?.value) || studentState.mock;
+    studentState.name = document.getElementById("tablet-name")?.value.trim() || "";
+    studentState.grade = document.getElementById("tablet-grade")?.value || "";
+    studentState.job = document.getElementById("tablet-job")?.value || "";
+    studentState.major = document.getElementById("tablet-major")?.value || "";
+    studentState.gpa = parseFloat(document.getElementById("tablet-gpa")?.value) || 0;
+    studentState.mock = parseInt(document.getElementById("tablet-mock")?.value) || 0;
 
     syncProfileInputsToUI();
-    renderInterestMarks();
+    syncInterestFlow({ persist: true });
     showToast("학생 정보(태블릿)가 저장됐어요.");
   });
 
   document.querySelector(".mobile-cta button")?.addEventListener("click", () => {
-    studentState.name = document.getElementById("mobile-name")?.value.trim() || studentState.name;
-    studentState.grade = document.getElementById("mobile-grade")?.value || studentState.grade;
-    studentState.job = document.getElementById("mobile-job")?.value || studentState.job;
-    studentState.major = document.getElementById("mobile-major")?.value || studentState.major;
-    studentState.gpa = parseFloat(document.getElementById("mobile-gpa")?.value) || studentState.gpa;
-    studentState.mock = parseInt(document.getElementById("mobile-mock")?.value) || studentState.mock;
+    studentState.name = document.getElementById("mobile-name")?.value.trim() || "";
+    studentState.grade = document.getElementById("mobile-grade")?.value || "";
+    studentState.job = document.getElementById("mobile-job")?.value || "";
+    studentState.major = document.getElementById("mobile-major")?.value || "";
+    studentState.gpa = parseFloat(document.getElementById("mobile-gpa")?.value) || 0;
+    studentState.mock = parseInt(document.getElementById("mobile-mock")?.value) || 0;
 
     syncProfileInputsToUI();
-    renderInterestMarks();
+    syncInterestFlow({ persist: true });
     showToast("학생 정보(모바일)가 저장됐어요.");
   });
 }
@@ -1420,7 +2032,30 @@ function setupActionButtons() {
   });
 
   document.querySelector(".bell")?.addEventListener("click", () => {
-    showToast("새 알림: 최근 활동 기록을 포트폴리오에 반영해 보세요.");
+    setView("notifications");
+    showToast("알림 페이지에서 다음 행동을 확인해요.");
+  });
+
+  document.getElementById("btn-clear-notifications")?.addEventListener("click", () => {
+    const list = document.getElementById("notification-list");
+    const count = document.getElementById("notification-count");
+    if (list) {
+      list.innerHTML = `<article class="notification-item is-empty"><div><strong>새 알림이 없어요</strong><p>관심 분야를 바꾸거나 활동을 기록하면 다시 추천 알림이 생깁니다.</p></div></article>`;
+    }
+    if (count) count.textContent = "0";
+  });
+
+  document.querySelectorAll("[data-home-interest-chips] .flow-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const interest = chip.dataset.interest;
+      const selected = new Set(studentState.interests || []);
+      if (selected.has(interest) && selected.size > 1) {
+        selected.delete(interest);
+      } else {
+        selected.add(interest);
+      }
+      setStudentInterests(Array.from(selected), { persist: true, addTodo: true, toast: true });
+    });
   });
 
   document.querySelectorAll(".portfolio-list button").forEach((button, index) => {
@@ -1455,12 +2090,111 @@ function setupActionButtons() {
   });
 
   // 기존 explore-grid 리스너 제거됨
+
+  // 홈 서비스 피첫마음 카드 관련 진로 탐색 탭 직접 연결
+  document.querySelectorAll("[data-explore-goto]").forEach(card => {
+    card.addEventListener("click", () => {
+      const target = card.dataset.exploreGoto;
+      setView("explore");
+      setTimeout(() => {
+        const tabBtn = document.querySelector(`[data-explore-tab="${target}"]`);
+        if (tabBtn) tabBtn.click();
+      }, 50);
+    });
+  });
+
+  // ZEP 버튼 연결
+  document.querySelectorAll(".bottom-actions button, .zep-grid ~ .bottom-actions button").forEach((button) => {
+    const label = button.textContent.trim();
+    if (label.includes("ZEP") || label.includes("입장")) {
+      button.addEventListener("click", () => {
+        document.getElementById("zep-enter-modal").style.display = "grid";
+      });
+    } else if (label.includes("콴테츠") || label.includes("링크 복사")) {
+      button.addEventListener("click", () => {
+        copyText(`${location.href.split("#")[0]}#zep`, "전시관 링크를 복사했어요.");
+      });
+    }
+  });
+
+  document.getElementById("btn-close-zep-modal")?.addEventListener("click", () => {
+    document.getElementById("zep-enter-modal").style.display = "none";
+  });
+
+  // History list item click → career tab
+  document.querySelector(".history-list")?.addEventListener("click", (e) => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    const title = li.querySelector("b")?.textContent;
+    if (!title) return;
+    const record = activitiesList.find(a => a.title === title);
+    if (record) {
+      syncSelectedActivity(record);
+      setView("career");
+    }
+  });
+
+  // Summary cards click → career tab
+  document.querySelector(".summary-cards")?.addEventListener("click", (e) => {
+    const li = e.target.closest("li");
+    if (!li) return;
+    const title = li.querySelector("b")?.textContent;
+    if (!title) return;
+    const record = activitiesList.find(a => a.title === title);
+    if (record) {
+      syncSelectedActivity(record);
+      setView("career");
+    }
+  });
+
+  // Sidebar todo add button
+  const sidebarTodoInput = document.getElementById("sidebar-todo-input");
+  const sidebarTodoAddBtn = document.getElementById("btn-sidebar-todo-add");
+  const addSidebarTodo = () => {
+    const title = sidebarTodoInput?.value.trim();
+    if (!title) { showToast("할 일을 입력해 주세요!"); return; }
+    addTodoItem(title);
+    if (sidebarTodoInput) sidebarTodoInput.value = "";
+  };
+  sidebarTodoAddBtn?.addEventListener("click", addSidebarTodo);
+  sidebarTodoInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); addSidebarTodo(); }
+  });
+
+  // Inquiry form submit
+  document.getElementById("btn-inquiry-submit")?.addEventListener("click", () => {
+    if (!currentUser) {
+      requireAuth("피드백 반영 메모 저장");
+      return;
+    }
+
+    const type = document.getElementById("inquiry-type")?.value || "진로 연결성";
+    const title = document.getElementById("inquiry-title")?.value.trim();
+    const content = document.getElementById("inquiry-content")?.value.trim();
+    if (!title || !content) {
+      showToast("피드백 태그와 반영 메모를 입력해 주세요.");
+      return;
+    }
+    const cardTitle = document.getElementById("feedback-card-title");
+    const cardDesc = document.getElementById("feedback-card-desc");
+    if (cardTitle) cardTitle.textContent = `[${type}] ${title}`;
+    if (cardDesc) cardDesc.textContent = content;
+    
+    const resultArea = document.getElementById("inquiry-result-area");
+    if (resultArea) {
+      resultArea.style.display = "block";
+      resultArea.innerHTML = `<div style="padding:16px;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-weight:700;">반영 메모가 저장되었습니다. 포트폴리오 보완 내역에 반영할 수 있어요.</div>`;
+    }
+    document.getElementById("inquiry-title").value = "";
+    document.getElementById("inquiry-content").value = "";
+    showToast("피드백 반영 메모가 저장됐어요.");
+  });
 }
 
 // 6대 기존 시스템 시뮬레이터 모의 데이터
 const systemSimData = {
   careernet: {
-    title: "커리어넷 진로심리검사",
+    title: "진로심리검사",
     disadvantage: "검사 결과가 '웹 개발자 적합'과 같이 일반적으로만 제시되어, 실제 학년별 생활기록부에 어떤 책을 적고 어떤 기획 프로젝트를 수행해야 하는지 구체적인 실행 계획(로드맵)으로 즉시 연결하기 어렵습니다.",
     html: `
       <div style="font-family:inherit;">
@@ -1532,38 +2266,38 @@ const systemSimData = {
     }
   },
   adiga: {
-    title: "어디가 성적 분석 시뮬레이터",
-    disadvantage: "성적 등급 등 단순한 '정량적 수치'만 분석할 뿐, 학생이 학교 홈페이지 제작 같은 고난도 주도적 프로젝트를 수행했는지 여부나 학생부 세특 기록의 깊이와 같은 '정성적 요소'를 연동 평가하지 못해 종합적인 합격 가능성 진단이 어렵고 초보 학생에게는 용어가 매우 어렵습니다.",
+    title: "성적 분석 시뮬레이터",
+    disadvantage: "성적 등급 등 단순한 '정량적 수치'만 분석할 뿐, 학생이 학교 홈페이지 제작 같은 주도적 프로젝트를 수행했는지 여부나 학생부 세특 기록의 깊이 같은 '정성적 요소'를 함께 보지 못해 진로 상담 자료로 쓰기 어렵습니다.",
     html: `
       <div style="font-family:inherit;">
-        <p><strong>내신 성적 대입 지원 가능성 진단</strong></p>
-        <p style="font-size:13px; color:#6b7b95;">평균 내신 등급을 입력하면 목표 대학 합격 가능성을 정량 분석합니다.</p>
+        <p><strong>내신 성적 지원 참고 자료</strong></p>
+        <p style="font-size:13px; color:#6b7b95;">평균 내신 등급을 입력하면 전형 검토용 참고 문구를 보여줍니다.</p>
         <div style="display:flex; gap:12px; align-items:center; margin: 12px 0;">
           <label style="font-size:14px;">평균 내신 등급: <input type="number" id="sim-gpa-val" value="2.3" step="0.1" style="width:70px; height:34px; padding:0 8px; border:1px solid #d4e0ef; border-radius:6px;" /></label>
         </div>
         <div id="sim-adiga-result" style="display:none; padding:12px; background:#e8f4fd; border-radius:8px; margin-top:12px; font-size:13.5px;">
           <strong>📊 정량 성적 분석 결과 (A대학 컴퓨터공학과):</strong><br>
-          전년도 합격자 평균: <strong>2.1등급</strong><br>
-          내 성적: <strong>2.3등급</strong> (지원선: 소신 지원)<br>
+          참고 등급: <strong>2.1등급</strong><br>
+          내 성적: <strong>2.3등급</strong> (검토 상태: 전형 확인)<br>
           <span style="color:#d6336c; font-size:12px;">* 본 진단은 학생부 종합 전형의 정성적 비교과 활동(세특, 동아리 등) 내역을 반영하지 않습니다.</span>
         </div>
       </div>
     `,
-    actionText: "대입 합격 가능성 진단",
+    actionText: "지원 참고 문구 보기",
     action: function() {
       const res = document.getElementById("sim-adiga-result");
       const gpaInput = document.getElementById("sim-gpa-val");
       if (res && gpaInput) {
         const val = parseFloat(gpaInput.value) || 2.3;
-        let prediction = "소신 지원";
-        if (val <= 1.9) prediction = "안정권 지원 가능";
-        else if (val <= 2.3) prediction = "적정/소신 지원선";
-        else prediction = "도전 필요 (우주 예비선)";
+        let prediction = "보완 권장";
+        if (val <= 1.9) prediction = "준비 우수";
+        else if (val <= 2.3) prediction = "전형 확인";
+        else prediction = "상담 필요";
         
         res.innerHTML = `
           <strong>📊 정량 성적 분석 결과 (A대학 컴퓨터공학과):</strong><br>
-          전년도 합격자 평균: <strong>2.1등급</strong><br>
-          내 성적: <strong>${val.toFixed(1)}등급</strong> (지원선: ${prediction})<br>
+          참고 등급: <strong>2.1등급</strong><br>
+          내 성적: <strong>${val.toFixed(1)}등급</strong> (검토 상태: ${prediction})<br>
           <span style="color:#d6336c; font-size:12px;">* 본 진단은 학생부 종합 전형의 정성적 비교과 활동(세특, 동아리 등) 내역을 반영하지 않습니다.</span>
         `;
         res.style.display = "block";
@@ -1597,14 +2331,14 @@ const systemSimData = {
           <strong>📄 [${query}] 검색된 학술자료:</strong><br>
           1. 고등학생의 <strong>${query}</strong> 장벽과 학업 자기효능감의 매개효과 분석 (2024)<br>
           2. 학교 <strong>${query}</strong>체험활동 및 고교학점제 과목선택 흥미도의 연계성 연구 (2023)<br>
-          <span style="color:#d6336c; font-size:12px;">* 본 자료는 순수 논문이며 학생 개개인을 위한 실시간 연동 로드맵 설계 기능은 제공되지 않습니다.</span>
+          <span style="color:#d6336c; font-size:12px;">* 본 자료는 논문 참고용이며 학생 개별 로드맵 설계까지 자동 연결되지는 않습니다.</span>
         `;
         res.style.display = "block";
       }
     }
   },
   kkumgil: {
-    title: "꿈길 진로체험 프로그램 신청",
+    title: "진로체험 프로그램 신청",
     disadvantage: "인기 있는 4차 산업 코딩 등의 체험은 조기 마감되거나 대도시 지역에만 체험처가 쏠려 있어 불평등이 발생하며, 일회성 체험 이후의 장기적인 진로 로드맵 연계나 피드백 장치가 현저히 부족합니다.",
     html: `
       <div style="font-family:inherit;">
@@ -1621,7 +2355,7 @@ const systemSimData = {
           <strong>🚗 체험처 매핑 결과:</strong><br>
           - 마포구 청소년 IT 코딩 부트캠프 (정원 초과 / <strong>마감</strong>)<br>
           - 인공지능 로봇 조종 교실 (대기 접수 중)<br>
-          - 3D 프린팅 시제품 제작 현장 (신청 가능하나 학교 단체 신청만 허용)
+          - 3D 프린팅 시제품 제작 현장 (학교 단체 운영 방식 확인 필요)
         </div>
       </div>
     `,
@@ -1637,14 +2371,14 @@ const systemSimData = {
           res.innerHTML = `
             <strong>🚗 체험처 매핑 결과 (${region}):</strong><br>
             <span style="color:#d6336c; font-weight:bold;">[검색결과 없음] 울릉군 지역 내에는 "${query}" 관련 진로체험 프로그램 및 등록 체험처가 존재하지 않습니다.</span><br>
-            <small style="color:var(--muted);">* 인근 내륙(포항 등)으로 이동하거나 온라인 원격 영상 진로멘토링만 신청 가능합니다.</small>
+            <small style="color:var(--muted);">* 인근 지역 프로그램이나 온라인 영상 진로멘토링 일정을 확인해 보세요.</small>
           `;
         } else {
           res.innerHTML = `
             <strong>🚗 체험처 매핑 결과 (${region}):</strong><br>
             - 마포구 청소년 IT ${query} 캠프 (정원 초과 / <span style="color:#d6336c; font-weight:bold;">마감</span>)<br>
             - 인공지능 로봇 및 ${query} 교실 (대기 접수 중)<br>
-            - 대학교 연계 IT ${query} 체험 프로그램 (신청 가능하나 30명 이상 단체 공문 필요)
+            - 대학교 연계 IT ${query} 체험 프로그램 (30명 이상 단체 운영 방식 확인 필요)
           `;
         }
         res.style.display = "block";
@@ -1652,17 +2386,17 @@ const systemSimData = {
     }
   },
   worknet: {
-    title: "고용24 / 워크넷 직업정보",
+    title: "직업 전망 참고 정보",
     disadvantage: "성인 및 실직자 취업 훈련 등에 특화되어 있어, 고교 학점제 과목 선택이나 생기부 연계 같은 중고등학생들의 실제 학교생활 및 입시 연동성이 결여되어 있습니다.",
     html: `
       <div style="font-family:inherit;">
-        <p><strong>워크넷 구인 통계 및 직업 전망 조회</strong></p>
+        <p><strong>직업 통계 및 전망 조회</strong></p>
         <p style="font-size:13px; color:#6b7b95;">알고 싶은 직업의 고용 지표 및 임금을 검색합니다.</p>
         <div style="display:flex; gap:8px; margin: 12px 0;">
           <input type="text" id="sim-wn-query" value="웹 개발자" style="flex:1; height:36px; padding:0 10px; border:1px solid #d4e0ef; border-radius:6px;" />
         </div>
         <div id="sim-worknet-result" style="display:none; padding:12px; background:#e8f4fd; border-radius:8px; margin-top:12px; font-size:13.5px;">
-          <strong>💼 워크넷 노동시장 정보:</strong><br>
+          <strong>💼 직업 전망 참고 정보:</strong><br>
           - 평균 연봉: <strong>4,200만원</strong><br>
           - 일자리 전망: <strong>다소 증가</strong><br>
           - 현재 채용 중인 공고: <strong>1,482건</strong><br>
@@ -1677,7 +2411,7 @@ const systemSimData = {
       if (res && jobInput) {
         const job = jobInput.value.trim() || "웹 개발자";
         res.innerHTML = `
-          <strong>💼 워크넷 노동시장 정보 (${job}):</strong><br>
+          <strong>💼 직업 전망 참고 정보 (${job}):</strong><br>
           - 중위 임금: <strong>연 4,200만원</strong><br>
           - 향후 10년간 일자리 전망: <strong>증가율 높음</strong><br>
           - 현재 기업 구인 공고수: <strong>1,482건 등록됨</strong><br>
@@ -1688,17 +2422,17 @@ const systemSimData = {
     }
   },
   alimi: {
-    title: "대학알리미 공시자료 조회",
-    disadvantage: "대학별 순수 정보 공시 사이트로 취업률이나 등록금 등 통계 수치는 보여주지만, 내 역량과 흥미에 비추어 특정 대학 학과에 어떻게 합격할 수 있는지 추천 피드백을 주지 못합니다.",
+    title: "대학 정보 조회",
+    disadvantage: "취업률이나 등록금 등 통계 수치는 보여주지만, 내 역량과 흥미에 비추어 특정 대학 학과를 어떻게 준비할지에 대한 활동 피드백을 주지 못합니다.",
     html: `
       <div style="font-family:inherit;">
-        <p><strong>대학정보공시 지표 비교</strong></p>
+        <p><strong>대학 지표 비교</strong></p>
         <p style="font-size:13px; color:#6b7b95;">조회하고자 하는 대학 학과를 입력해보세요.</p>
         <div style="display:flex; gap:8px; margin: 12px 0;">
           <input type="text" id="sim-al-query" value="A대학교 컴퓨터공학과" style="flex:1; height:36px; padding:0 10px; border:1px solid #d4e0ef; border-radius:6px;" />
         </div>
         <div id="sim-alimi-result" style="display:none; padding:12px; background:#e8f4fd; border-radius:8px; margin-top:12px; font-size:13.5px;">
-          <strong>📊 공시 정보:</strong><br>
+          <strong>📊 대학 정보:</strong><br>
           - 전공 취업률: <strong>78.4%</strong><br>
           - 학생 1인당 연간 장학금: <strong>3,420,000원</strong><br>
           - 신입생 충원율: <strong>100%</strong><br>
@@ -1706,19 +2440,19 @@ const systemSimData = {
         </div>
       </div>
     `,
-    actionText: "대학 공시 데이터 조회",
+    actionText: "대학 정보 조회",
     action: function() {
       const res = document.getElementById("sim-alimi-result");
       const univInput = document.getElementById("sim-al-query");
       if (res && univInput) {
         const univ = univInput.value.trim() || "A대학교 컴퓨터공학과";
         res.innerHTML = `
-          <strong>📊 대학알리미 공시 정보 (${univ}):</strong><br>
+          <strong>📊 대학 정보 (${univ}):</strong><br>
           - 전공 취업률: <strong>78.4%</strong><br>
           - 1인당 연평균 장학금액: <strong>3,420,000원</strong><br>
           - 신입생 수시/정시 경쟁률: <strong>9.2 : 1</strong><br>
           - 연간 수업료 고액도: <strong>8,120,000원</strong><br>
-          <span style="color:#d6336c; font-size:12.5px;">* 이 지표는 대학의 환경 통계일 뿐, 해당 대학 전공에 합격하기 위한 학생부 활동 조합 가이드는 없습니다.</span>
+          <span style="color:#d6336c; font-size:12.5px;">* 이 지표는 대학의 환경 통계일 뿐, 해당 대학 전공을 준비하기 위한 학생부 활동 조합 가이드는 없습니다.</span>
         `;
         res.style.display = "block";
       }
@@ -1745,13 +2479,13 @@ function updateLiveAiGuide() {
 
   if (aiGpaStat) {
     if (gpaVal <= 2.1) {
-      aiGpaStat.textContent = "최상위권 (합격 유력)";
+      aiGpaStat.textContent = "최상위권 (준비 우수)";
       aiGpaStat.className = "match-good";
     } else if (gpaVal <= 2.5) {
-      aiGpaStat.textContent = "보통 (적정 지원선)";
+      aiGpaStat.textContent = "보통 (전형 확인)";
       aiGpaStat.className = "";
     } else {
-      aiGpaStat.textContent = "도전 필요 (소신 지원)";
+      aiGpaStat.textContent = "도전 필요 (보완 권장)";
       aiGpaStat.className = "match-warn";
     }
   }
@@ -1771,7 +2505,7 @@ function updateLiveAiGuide() {
   }
 
   let rating = "미흡 (C)";
-  let advice = "비교과 활동이 선택되지 않았습니다. 종합전형 지원을 희망하시면 아래 활동 목록에서 1개 이상의 전공 관련 활동을 체크하여 연동해 주십시오.";
+  let advice = "비교과 활동이 선택되지 않았습니다. 종합전형을 준비하려면 아래 활동 목록에서 1개 이상의 전공 관련 활동을 체크하여 연동해 주세요.";
 
   if (targetVal === "종합") {
     if (activeCount >= 3) {
@@ -1779,32 +2513,32 @@ function updateLiveAiGuide() {
       advice = `학생부종합전형(학종)을 대비하기에 최상의 상태입니다. 선택한 ${activeCount}개의 주도적 활동(예: ${checkedActs[0] || '학교 홈페이지 제작'}) 덕분에 정성적 생기부 지수가 매우 견고합니다. 내신 등급(${gpaVal}등급)을 커버할 수 있는 세특 스토리가 돋보입니다.`;
     } else if (activeCount >= 2) {
       rating = "우수 (A)";
-      advice = `학종 대비 활동이 ${activeCount}개로 준수합니다. 독서 기록이나 동아리 활동 1개를 추가 연동하면 안정적인 '최우수 (S등급)' 합격 경쟁력을 확보할 수 있습니다.`;
+      advice = `학종 대비 활동이 ${activeCount}개로 준수합니다. 독서 기록이나 동아리 활동 1개를 추가 연동하면 전공 관심과 성장 과정 설명이 더 탄탄해집니다.`;
     } else if (activeCount >= 1) {
       rating = "보통 (B)";
       advice = `연동된 비교과 활동이 1개뿐이어서 대입 학종의 정성 평가 요소에서 경쟁력을 확보하기에 다소 부족합니다. 활동 기록 탭에서 전공 분야 활동 기록을 보강할 것을 권장합니다.`;
     } else {
       rating = "미흡 (C)";
-      advice = `비교과 활동이 선택되지 않았습니다. 종합전형 지원을 희망하시면 아래 활동 목록에서 1개 이상의 전공 관련 활동을 체크하여 연동해 주십시오.`;
+      advice = `비교과 활동이 선택되지 않았습니다. 종합전형을 준비하려면 아래 활동 목록에서 1개 이상의 전공 관련 활동을 체크하여 연동해 주세요.`;
     }
   } else if (targetVal === "교과") {
     if (gpaVal <= 1.8) {
       rating = "최우수 (S)";
-      advice = `학생부교과전형(내신 중심)에 매우 유리한 내신 등급(${gpaVal}등급)입니다. 목표 대학 컴퓨터공학과 기준 합격선 안정권에 위치해 있으며, 수능 최저학력기준 충족 여부만 최종 점검하시면 안전합니다.`;
+      advice = `학생부교과전형(내신 중심)을 준비하기에 유리한 내신 등급(${gpaVal}등급)입니다. 수능 최저학력기준, 반영 교과, 대학별 전형 변화를 함께 확인하세요.`;
     } else if (gpaVal <= 2.3) {
       rating = "우수 (A)";
-      advice = `교과전형 지원선 적정 수준의 내신 등급(${gpaVal}등급)입니다. 전년도 평균 2.1등급에 근접하므로 소신/적정 수준이며, 내신 평점을 2.1 이내로 추가 상승시키면 합격 가능성이 비약적으로 증가합니다.`;
+      advice = `교과전형을 검토할 수 있는 내신 등급(${gpaVal}등급)입니다. 반영 교과와 학기별 성적 흐름을 확인하고, 학생부종합전형용 활동 기록도 함께 보완하세요.`;
     } else if (gpaVal <= 3.0) {
       rating = "보통 (B)";
       advice = `내신 ${gpaVal}등급은 교과전형 기준 수도권 및 지방 거점 국립대 적정선입니다. 주요 대학 진학을 위해서는 비교과 활동을 보완하여 '학생부종합전형'으로 선회하거나 정시 수능 전형 대비를 강화하는 것을 추천합니다.`;
     } else {
       rating = "미흡 (C)";
-      advice = `내신 ${gpaVal}등급으로 학생부교과전형 지원은 불리한 편입니다. 학생부종합전형 지원을 위한 전공적합 세특 보완과 꿈길 SW 체험 참여가 필요합니다.`;
+      advice = `내신 ${gpaVal}등급으로 학생부교과전형 지원은 불리한 편입니다. 학생부종합전형 지원을 위한 전공적합 세특 보완과 SW 진로 체험 참여가 필요합니다.`;
     }
   } else { // targetVal === "수능"
     if (mockVal >= 90) {
       rating = "최우수 (S)";
-      advice = `모의고사 백분위 상위 ${100 - mockVal}% (${mockVal}%)는 정시전형 기준 메이저 대학 IT/공학 계열 합격선 안정권입니다. 현 상태를 유지하며 수능 당일 실수를 방지하는 것이 최우선 과제입니다.`;
+      advice = `모의고사 백분위 상위 ${100 - mockVal}% (${mockVal}%) 수준입니다. 정시 지원군을 넓게 비교하면서 취약 과목 보완과 실전 관리 계획을 세우는 것이 좋습니다.`;
     } else if (mockVal >= 80) {
       rating = "우수 (A)";
       advice = `모의고사 백분위 ${mockVal}%는 수도권 주요 대학 IT 학과 지원 가능선입니다. 취약 영역(수학 또는 과학탐구)의 4점 문항 2~3개를 극복하면 메이저 대학 지원군으로 도약할 수 있습니다.`;
@@ -1838,8 +2572,8 @@ function setupRoadmapDesigner() {
   const rmSelectTarget = document.getElementById("rm-select-target");
 
   const syncRmInputs = () => {
-    const gpaVal = parseFloat(rmGpaInput?.value) || 2.3;
-    const mockVal = parseInt(rmMockInput?.value) || 88;
+    const gpaVal = parseFloat(rmGpaInput?.value) || 0;
+    const mockVal = parseInt(rmMockInput?.value) || 0;
     
     studentState.gpa = gpaVal;
     studentState.mock = mockVal;
@@ -1871,8 +2605,13 @@ function setupRoadmapDesigner() {
   rmSelectTarget?.addEventListener("change", syncRmInputs);
 
   btnGenerate?.addEventListener("click", () => {
-    const gpaVal = parseFloat(rmGpaInput?.value) || 2.3;
-    const mockVal = parseInt(rmMockInput?.value) || 88;
+    if (!currentUser) {
+      requireAuth("로드맵 생성");
+      return;
+    }
+
+    const gpaVal = parseFloat(rmGpaInput?.value) || 0;
+    const mockVal = parseInt(rmMockInput?.value) || 0;
     
     studentState.gpa = gpaVal;
     studentState.mock = mockVal;
@@ -1884,10 +2623,10 @@ function setupRoadmapDesigner() {
     if (progressFill) progressFill.style.width = "0%";
     
     const steps = [
-      { percentage: 20, text: "진로브릿지 AI 엔진 분석 시작..." },
-      { percentage: 40, text: "커리어넷 심리 데이터 결합 완료..." },
-      { percentage: 65, text: "어디가 성적 분석 및 대학 합격선 비교 분석 중..." },
-      { percentage: 85, text: "대학알리미 SW 학과 공시 통계 연계 매핑 완료..." },
+      { percentage: 20, text: "진로브릿지 분석 시작..." },
+      { percentage: 40, text: "진로 흥미 데이터 결합 완료..." },
+      { percentage: 65, text: "성적 정보와 활동 기록 비교 중..." },
+      { percentage: 85, text: "관심 학과 정보 매핑 완료..." },
       { percentage: 100, text: "통합 진로 로드맵 설계 완료!" }
     ];
     
@@ -1910,16 +2649,16 @@ function setupRoadmapDesigner() {
         const resGpa = document.getElementById("res-gpa");
         const resMock = document.getElementById("res-mock");
  
-        if (resStudentName) resStudentName.textContent = studentState.name;
-        if (resHopeJob) resHopeJob.textContent = studentState.job;
-        if (resHopeMajor) resHopeMajor.textContent = studentState.major;
+        if (resStudentName) resStudentName.textContent = studentState.name || "학생";
+        if (resHopeJob) resHopeJob.textContent = studentState.job || "미선택";
+        if (resHopeMajor) resHopeMajor.textContent = studentState.major || "미선택";
         if (resGpa) resGpa.textContent = studentState.gpa.toFixed(1);
         if (resMock) resMock.textContent = studentState.mock;
         
         const activeCount = checkedActs.length;
         document.querySelectorAll(".active-count-placeholder").forEach(el => el.textContent = String(activeCount));
         
-        const firstAct = checkedActs[0] || "학교 홈페이지 제작";
+        const firstAct = checkedActs[0] || "선택한 활동 없음";
         document.querySelectorAll(".active-title-placeholder").forEach(el => el.textContent = firstAct);
         
         const fillEl = document.querySelector(".gpa-comparison-graph .graph-fill");
@@ -1949,8 +2688,8 @@ function setupRoadmapDesigner() {
           gpa: studentState.gpa,
           mock: studentState.mock
         };
-        await saveRoadmapToServer(roadmapData);
-        showToast("✨ 학생의 활동 및 성적 데이터를 통합 분석한 로드맵이 생성됐습니다.");
+        const saved = await saveRoadmapToServer(roadmapData);
+        showToast(saved ? "학생의 활동 및 성적 데이터를 통합 분석한 로드맵이 생성됐습니다." : "로그인하면 로드맵을 저장할 수 있어요.");
       }
     }, 400);
   });
@@ -1961,7 +2700,7 @@ function setupRoadmapDesigner() {
   });
   
   document.querySelector(".btn-pin-roadmap")?.addEventListener("click", () => {
-    showToast("📌 통합 로드맵을 마이페이지 상단에 고정했습니다!");
+    showToast("통합 로드맵을 학생 정보 상단에 고정했습니다.");
   });
   
   document.querySelectorAll(".btn-add-road-todo").forEach(btn => {
@@ -2041,216 +2780,566 @@ function setupExplorePortal() {
     if (rmTab) rmTab.click();
   });
 
-  // --- 1. 고입 매칭기 ---
-  const hsData = [
-    { name: "경기과학고등학교", type: "과학고", desc: "국내 최정상급 과학영재학교로, 이공계 인재 육성을 위한 심화 교육과정 및 연구(R&E) 중심 교육을 제공합니다.", cutoff: 95, spec: "수학·과학 성취도 A 필수, 면접 및 창의성 캠프 대비 필요" },
-    { name: "서울과학고등학교", type: "과학고", desc: "영재학교로서 대학 수준의 전문 교과 과정을 이수하며, 매년 다수의 국제올림피아드 국가대표를 배출합니다.", cutoff: 96, spec: "수학·과학 지필 평가 및 자기주도성 검증 중요" },
-    { name: "한영외국어고등학교", type: "외고", desc: "글로벌 어학 인재를 양성하는 명문 외고로, 다양한 제2외국어 심화 트랙 및 글로벌 리더십 프로그램을 운영합니다.", cutoff: 88, spec: "영어 교과 성취도 A 필수, 자기소개서 및 면접 대비" },
-    { name: "대원외국어고등학교", type: "외고", desc: "국내 최고의 외고 학업 경쟁력을 보유하고 있으며, 어학 특화 인문학 소양 교육과 대입 진학 성과가 우수합니다.", cutoff: 90, spec: "영어 내신 및 면접 만점 기준 대비 필요" },
-    { name: "미래IT마이스터고", type: "마이스터고", desc: "소프트웨어 개발 및 정보보안 분야 기술명장을 육성하는 특수목적고로, 대기업 및 공공기관 100% 취업 연계를 지원합니다.", cutoff: 80, spec: "코딩 기초 소양 및 협업 능력 평가, 포트폴리오 우대" },
-    { name: "한국반도체마이스터고", type: "마이스터고", desc: "삼성전자, SK하이닉스 등 반도체 제조 대기업과 협약된 맞춤형 실습 및 장학생 선발 프로그램을 갖추고 있습니다.", cutoff: 82, spec: "기계·공학 기초 물리성적 중시, 면접 심사 비중 높음" },
-    { name: "민족사관고등학교", type: "자사고", desc: "전국 단위 모집 자율형 사립고등학교로, 토론식 수업 및 융합형 무학년제 인재 육성을 지향합니다.", cutoff: 94, spec: "전교과 성취도 A 필수, 체력 검정 및 다면 면접 평가" },
-    { name: "상산고등학교", type: "자사고", desc: "자사고 중 의약학계열 및 이공계 진학률이 독보적이며, 심화 수학 및 논술 대비 프로그램이 강점입니다.", cutoff: 93, spec: "수학 성적 가중치 높음, 독서 토론 면접 대비 중요" },
-    { name: "서울디지텍고등학교", type: "특성화고", desc: "게임 개발, VR/AR 콘텐츠 제작을 가르치며 탄탄한 IT 실무 역량을 배양하고 조기 취업을 보장합니다.", cutoff: 70, spec: "컴퓨터 흥미 및 직업 적성 면접 평가" },
-    { name: "한국조리과학고등학교", type: "특성화고", desc: "외식 및 조리 전반의 전문 자격증 취득과 국내외 유명 호텔 취업 및 조리학과 대입 연계를 지원합니다.", cutoff: 75, spec: "실기 적성 평가 및 조리 직무 의지 면접" }
-  ];
+  // --- 1. 커리어넷 API 검색기 ---
+  const CAREERNET_API_KEY = "297e4105c3f5f0625592fc8369dc0332";
+  const CAREERNET_OPEN_API = "https://www.career.go.kr/cnet/openapi/getOpenApi";
+  const CAREERNET_JOB_API = "https://www.career.go.kr/cnet/front/openapi/jobs.json";
+  const careerNetRegionCodes = {
+    서울: "100260",
+    부산: "100267",
+    인천: "100269",
+    대전: "100271",
+    대구: "100272",
+    울산: "100273",
+    광주: "100275",
+    경기: "100276",
+    강원: "100278",
+    충북: "100280",
+    충남: "100281",
+    전북: "100282",
+    전남: "100283",
+    경북: "100285",
+    경남: "100291",
+    제주: "100292"
+  };
+  const careerNetSch1Codes = {
+    일반고: "100362",
+    특성화고: "100363",
+    과학고: "100364",
+    외고: "100364",
+    국제고: "100364",
+    마이스터고: "100364",
+    영재학교: "100364",
+    예술고: "100364",
+    체육고: "100364",
+    자사고: "100365"
+  };
+  const careerNetJobCategoryCodes = {
+    IT: "1",
+    보건: "3",
+    교육: "2",
+    사회: "2",
+    경영: "0",
+    공학: "1",
+    문화: "4",
+    서비스: "5",
+    농생명: "9"
+  };
+  const careerNetMajorSubjectCodes = {
+    IT: "100394",
+    보건: "100396",
+    교육: "100393",
+    사회: "100392",
+    경영: "100392",
+    공학: "100394",
+    문화: "100397",
+    서비스: "100392",
+    농생명: "100395"
+  };
+  const careerNetSchoolCache = new Map();
+  const careerNetDictionaryCache = new Map();
 
+  function stripApiText(value = "") {
+    return String(value || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function toArray(value) {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === "object") return [value];
+    return [];
+  }
+
+  function getCareerNetContent(data) {
+    return toArray(data?.dataSearch?.content);
+  }
+
+  function safeExternalUrl(value = "") {
+    const raw = String(value || "").trim();
+    if (!raw || raw === "null") return "";
+    try {
+      const url = new URL(raw, "https://www.career.go.kr");
+      return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function normalizeRegionName(region = "") {
+    const value = String(region || "");
+    if (value.includes("서울")) return "서울";
+    if (value.includes("부산")) return "부산";
+    if (value.includes("인천")) return "인천";
+    if (value.includes("대전")) return "대전";
+    if (value.includes("대구")) return "대구";
+    if (value.includes("울산")) return "울산";
+    if (value.includes("광주")) return "광주";
+    if (value.includes("경기")) return "경기";
+    if (value.includes("강원")) return "강원";
+    if (value.includes("충북") || value.includes("충청북")) return "충북";
+    if (value.includes("충남") || value.includes("충청남")) return "충남";
+    if (value.includes("전북")) return "전북";
+    if (value.includes("전남") || value.includes("전라남")) return "전남";
+    if (value.includes("경북") || value.includes("경상북")) return "경북";
+    if (value.includes("경남") || value.includes("경상남")) return "경남";
+    if (value.includes("제주")) return "제주";
+    return value || "지역 미상";
+  }
+
+  function inferHighSchoolType(school = {}) {
+    const text = [school.schoolName, school.schoolType, school.schoolGubun].join(" ");
+    if (/영재/.test(text)) return "영재학교";
+    if (/과학고|과학/.test(text)) return "과학고";
+    if (/외국어|외고/.test(text)) return "외고";
+    if (/국제/.test(text)) return "국제고";
+    if (/마이스터/.test(text)) return "마이스터고";
+    if (/예술|공연|디자인/.test(text)) return "예술고";
+    if (/체육/.test(text)) return "체육고";
+    if (/자율|자사/.test(text)) return "자사고";
+    if (/특성화|직업|공업|상업|정보|디지털|인터넷|금융|관광|조리|농업|해사/.test(text)) return "특성화고";
+    return "일반고";
+  }
+
+  function inferHighSchoolTracks(name = "", type = "") {
+    const tracks = new Set();
+    const text = `${name} ${type}`;
+    if (/소프트웨어|디지털|인터넷|정보|컴퓨터|게임|IT/i.test(text)) tracks.add("IT");
+    if (/과학|영재/.test(text)) tracks.add("과학");
+    if (/외국어|외고|국제/.test(text)) tracks.add("외국어");
+    if (/금융|상업|경영|비즈니스/.test(text)) tracks.add("상경");
+    if (/디자인|애니|미디어|콘텐츠|영상|만화|예술|공연/.test(text)) tracks.add("디자인");
+    if (/로봇|자동화/.test(text)) tracks.add("로봇");
+    if (/전기|전자|에너지/.test(text)) tracks.add("전기전자");
+    if (/반도체/.test(text)) tracks.add("반도체");
+    if (/자동차/.test(text)) tracks.add("자동차");
+    if (/기계|공업/.test(text)) tracks.add("기계");
+    if (/항공/.test(text)) tracks.add("항공");
+    if (/해사|해양/.test(text)) tracks.add("해양");
+    if (/조리|식품|외식/.test(text)) tracks.add("조리");
+    if (/의료|보건|바이오/.test(text)) tracks.add("보건");
+    if (/농업|농생명|생명과학/.test(text)) tracks.add("농생명");
+    if (/체육/.test(text)) tracks.add("체육");
+    if (!tracks.size && type === "일반고") tracks.add("일반");
+    return Array.from(tracks);
+  }
+
+  function mapCareerNetSchool(item) {
+    const type = inferHighSchoolType(item);
+    const name = item.schoolName || "학교명 미상";
+    const rawRegion = item.region || "";
+    const rawType = item.schoolType || item.schoolGubun || "고등학교";
+    const address = stripApiText(item.adres || item.address || "");
+    const campus = stripApiText(item.campusName || "");
+    return {
+      name,
+      region: normalizeRegionName(rawRegion),
+      rawRegion,
+      type,
+      tracks: inferHighSchoolTracks(name, type),
+      estType: stripApiText(item.estType || ""),
+      schoolType: stripApiText(rawType),
+      schoolGubun: stripApiText(item.schoolGubun || ""),
+      address,
+      campus,
+      desc: [rawRegion, item.estType, rawType].filter(Boolean).join(" · "),
+      link: safeExternalUrl(item.link)
+    };
+  }
+
+  async function fetchCareerNetSchools({ gubun, rawKeyword, region, filterType, perPage = 500, maxPages = 30 }) {
+    const cacheKey = JSON.stringify({ gubun, rawKeyword, region, filterType, perPage, maxPages });
+    if (careerNetSchoolCache.has(cacheKey)) return careerNetSchoolCache.get(cacheKey);
+
+    const baseParams = {
+      apiKey: CAREERNET_API_KEY,
+      svcType: "api",
+      svcCode: "SCHOOL",
+      contentType: "json",
+      gubun,
+      perPage: String(perPage)
+    };
+    if (rawKeyword) baseParams.searchSchulNm = rawKeyword;
+    if (region !== "all" && careerNetRegionCodes[region] && region !== "수도권" && region !== "지방거점") {
+      baseParams.region = careerNetRegionCodes[region];
+    }
+    if (filterType !== "all" && careerNetSch1Codes[filterType]) baseParams.sch1 = careerNetSch1Codes[filterType];
+
+    const schools = [];
+    let totalCount = 0;
+    for (let page = 1; page <= maxPages; page++) {
+      const params = new URLSearchParams({ ...baseParams, thisPage: String(page) });
+      const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
+      if (!response.ok) throw new Error("커리어넷 학교정보 API 응답 실패");
+      const data = await response.json();
+      const list = getCareerNetContent(data);
+      if (!list.length) break;
+      totalCount = Number(list[0]?.totalCount || data?.dataSearch?.totalCount || totalCount || list.length);
+      schools.push(...list.map(mapCareerNetSchool));
+      if (schools.length >= totalCount) break;
+    }
+
+    const result = { schools, totalCount: totalCount || schools.length };
+    careerNetSchoolCache.set(cacheKey, result);
+    return result;
+  }
+
+  function regionMatchesSchool(school, region) {
+    if (region === "all") return true;
+    const regionText = normalizeCareerText(`${school.region} ${school.rawRegion}`);
+    if (region === "수도권") return ["경기", "인천"].some((item) => regionText.includes(normalizeCareerText(item)));
+    if (region === "지방거점") return !["서울", "경기", "인천"].some((item) => regionText.includes(normalizeCareerText(item)));
+    return regionText.includes(normalizeCareerText(region));
+  }
+
+  function schoolMatchesType(school, filterType) {
+    if (filterType === "all") return true;
+    const haystack = normalizeCareerText([school.name, school.type, school.schoolType, school.schoolGubun].join(" "));
+    return school.type === filterType || haystack.includes(normalizeCareerText(filterType));
+  }
+
+  function renderApiLoading(target, text) {
+    target.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 42px 20px; color: var(--muted);">
+        <div class="spinner" style="margin: 0 auto 16px;"></div>${escapeHtml(text)}
+      </div>
+    `;
+  }
+
+  const hsSearchInput = document.getElementById("hs-search-input");
+  const hsRegionFilter = document.getElementById("hs-region-filter");
   const hsFilter = document.getElementById("hs-type-filter");
-  const hsRange = document.getElementById("hs-grade-range");
-  const hsRangeVal = document.getElementById("hs-grade-val");
+  const hsTrackFilter = document.getElementById("hs-track-filter");
+  const hsStatus = document.getElementById("hs-result-status");
 
-  const matchHighSchools = () => {
+  let hsSearchRequestId = 0;
+  let hsSearchTimer = null;
+
+  const matchHighSchools = async () => {
+    const requestId = ++hsSearchRequestId;
+    const rawKeyword = (hsSearchInput?.value || "").trim();
+    const keyword = normalizeCareerText(rawKeyword);
+    const region = hsRegionFilter ? hsRegionFilter.value : "all";
     const filterType = hsFilter ? hsFilter.value : "all";
-    const score = hsRange ? parseInt(hsRange.value) : 90;
-    
-    if (hsRangeVal) hsRangeVal.textContent = `${score}점`;
+    const track = hsTrackFilter ? hsTrackFilter.value : "all";
 
     const listEl = document.getElementById("highschool-list");
     if (!listEl) return;
 
-    listEl.innerHTML = "";
+    if (hsStatus) {
+      hsStatus.textContent = "커리어넷 학교정보 API에서 고등학교 정보를 불러오는 중입니다.";
+    }
+    renderApiLoading(listEl, "커리어넷 고등학교 정보를 불러오는 중...");
 
-    const filtered = hsData.filter(school => {
-      if (filterType === "all") return true;
-      if (filterType === "과학고" && school.type === "과학고") return true;
-      if (filterType === "외고" && school.type === "외고") return true;
-      if (filterType === "마이스터고" && school.type === "마이스터고") return true;
-      if (filterType === "자사고" && school.type === "자사고") return true;
-      if (filterType === "특성화고" && school.type === "특성화고") return true;
-      return false;
+    try {
+      const { schools, totalCount } = await fetchCareerNetSchools({
+        gubun: "high_list",
+        rawKeyword,
+        region,
+        filterType
+      });
+      if (requestId !== hsSearchRequestId) return;
+
+      const profile = currentInterestProfile();
+      const filtered = schools.filter((school) => {
+      const haystack = normalizeCareerText([
+        school.name,
+        school.region,
+        school.rawRegion,
+        school.type,
+        school.tracks.join(" "),
+        school.desc,
+        school.schoolType,
+        school.schoolGubun,
+        school.address
+      ].join(" "));
+      if (keyword && !haystack.includes(keyword)) return false;
+      if (!regionMatchesSchool(school, region)) return false;
+      if (!schoolMatchesType(school, filterType)) return false;
+      if (track !== "all" && !school.tracks.includes(track)) return false;
+      return true;
+    }).sort((a, b) => {
+      const profileText = normalizeCareerText([profile.job, profile.major, profile.schoolType, profile.school, profile.searchQuery].join(" "));
+      const aInterest = (a.type === profile.schoolType || a.tracks.some((item) => profileText.includes(normalizeCareerText(item)))) ? 1 : 0;
+      const bInterest = (b.type === profile.schoolType || b.tracks.some((item) => profileText.includes(normalizeCareerText(item)))) ? 1 : 0;
+      return bInterest - aInterest || a.region.localeCompare(b.region, "ko") || a.name.localeCompare(b.name, "ko");
     });
 
-    filtered.forEach(school => {
-      let matchText = "";
-      let matchClass = "";
-      if (score >= school.cutoff) {
-        matchText = "안정 (매우 높음)";
-        matchClass = "background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;";
-      } else if (score >= school.cutoff - 4) {
-        matchText = "적정 (도전 가능)";
-        matchClass = "background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;";
-      } else if (score >= school.cutoff - 8) {
-        matchText = "소신 (역량 보완)";
-        matchClass = "background: #fffbeb; color: #d97706; border: 1px solid #fde68a;";
-      } else {
-        matchText = "위험 (성적 부족)";
-        matchClass = "background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;";
-      }
+    if (hsStatus) {
+        const renderedCount = Math.min(filtered.length, 120);
+        hsStatus.textContent = `커리어넷 학교정보 API 기준 ${totalCount.toLocaleString("ko-KR")}곳 중 조건에 맞는 ${filtered.length.toLocaleString("ko-KR")}곳을 찾았습니다. 화면에는 ${renderedCount.toLocaleString("ko-KR")}곳까지 표시됩니다.`;
+    }
 
+    if (filtered.length === 0) {
+      listEl.innerHTML = `
+        <article class="hs-school-card hs-school-card-manual" style="grid-column: 1 / -1;">
+          <h4>검색 결과가 없습니다</h4>
+          <p class="hs-desc">커리어넷 학교정보 API에서 현재 조건과 일치하는 고등학교를 찾지 못했습니다. 학교명 일부, 지역, 유형, 계열 필터를 조정해 주세요.</p>
+        </article>
+      `;
+      return;
+    }
+
+      listEl.innerHTML = "";
+      filtered.slice(0, 120).forEach((school) => {
+      const isInterest = school.tracks.some((item) => (studentState.interests || []).join(" ").includes(item));
       const card = document.createElement("article");
       card.className = "hs-school-card";
       card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
-          <span class="hs-tag ${school.type}">${school.type}</span>
-          <span style="font-size: 11.5px; font-weight: 800; padding: 3px 8px; border-radius: 6px; ${matchClass}">${matchText}</span>
+        <div class="hs-card-top">
+          <div class="hs-tag-row">
+            <span class="hs-tag ${school.type}">${school.type}</span>
+            <span class="hs-tag neutral">${school.region}</span>
+            ${school.tracks.map((item) => `<span class="hs-tag track">${item}</span>`).join("")}
+          </div>
+          <span class="match-pill info">입시 정보</span>
         </div>
-        <h4 style="margin: 8px 0 4px; font-size: 16.5px; color: var(--ink); font-weight: 800;">${school.name}</h4>
-        <p class="hs-desc" style="font-size: 13.5px; color: var(--text); line-height: 1.5; margin: 4px 0 10px;">${school.desc}</p>
-        <div class="hs-spec" style="font-size: 12.5px; background: #f8fbff; border-radius: 8px; padding: 8px 10px; border: 1px solid var(--soft-line); color: var(--blue); font-weight: 700;">
-          🔑 <b>입시 핵심:</b> ${school.spec} (합격선: ${school.cutoff}점)
-        </div>
+        <h4>${escapeHtml(school.name)}${isInterest ? " <small>관심 분야 추천</small>" : ""}</h4>
+        <p class="hs-desc">${escapeHtml(school.desc || "커리어넷 학교정보 API에서 제공한 학교 정보입니다.")}</p>
+        <dl class="hs-detail-list">
+          <div><dt>학교 종류</dt><dd>${escapeHtml(school.schoolGubun || school.schoolType || school.type)}</dd></div>
+          <div><dt>주소</dt><dd>${escapeHtml(school.address || "주소 정보 없음")}</dd></div>
+          <div><dt>설립</dt><dd>${escapeHtml(school.estType || "설립 정보 없음")}${school.campus ? ` · ${escapeHtml(school.campus)}` : ""}</dd></div>
+        </dl>
+        ${school.link ? `<a class="hs-link" href="${school.link}" target="_blank" rel="noopener">학교 홈페이지 열기</a>` : `<div class="hs-spec">커리어넷에 학교 홈페이지 링크가 등록되어 있지 않습니다.</div>`}
       `;
       listEl.appendChild(card);
     });
+    } catch (error) {
+      console.error(error);
+      if (requestId !== hsSearchRequestId) return;
+      if (hsStatus) {
+        hsStatus.textContent = "커리어넷 학교정보 API 연결에 실패했습니다.";
+      }
+      listEl.innerHTML = `
+        <article class="hs-school-card" style="grid-column: 1 / -1;">
+          <h4>API 연결 필요</h4>
+          <p class="hs-desc">고등학교 목록은 내장 데이터 없이 커리어넷 학교정보 API에서만 불러옵니다. 네트워크 또는 브라우저 보안 정책 때문에 요청이 막히면 결과를 표시하지 않습니다.</p>
+        </article>
+      `;
+    }
   };
 
+  const scheduleHighSchoolSearch = () => {
+    window.clearTimeout(hsSearchTimer);
+    hsSearchTimer = window.setTimeout(matchHighSchools, 300);
+  };
+
+  hsSearchInput?.addEventListener("input", scheduleHighSchoolSearch);
+  hsRegionFilter?.addEventListener("change", matchHighSchools);
   hsFilter?.addEventListener("change", matchHighSchools);
-  hsRange?.addEventListener("input", matchHighSchools);
+  hsTrackFilter?.addEventListener("change", matchHighSchools);
 
-  // --- 2. 대입/대학 매칭기 ---
-  const univData = [
-    { name: "서울대학교", major: "컴퓨터공학부", region: "서울", category: "공학", emp: "82.5%", tuition: "602만원", type: "학생부종합", gpaCut: 1.3, mockCut: 98 },
-    { name: "연세대학교", major: "인공지능학과", region: "서울", category: "공학", emp: "79.1%", tuition: "910만원", type: "학생부종합", gpaCut: 1.5, mockCut: 96 },
-    { name: "고려대학교", major: "컴퓨터학과", region: "서울", category: "공학", emp: "81.0%", tuition: "890만원", type: "학생부종합", gpaCut: 1.6, mockCut: 95 },
-    { name: "한양대학교", major: "융합전자공학부", region: "서울", category: "공학", emp: "78.4%", tuition: "850만원", type: "학생부교과", gpaCut: 1.8, mockCut: 93 },
-    { name: "성균관대학교", major: "소프트웨어학과", region: "서울", category: "공학", emp: "83.2%", tuition: "870만원", type: "학생부종합", gpaCut: 1.9, mockCut: 92 },
-    { name: "서강대학교", major: "컴퓨터공학과", region: "서울", category: "공학", emp: "76.5%", tuition: "840만원", type: "학생부종합", gpaCut: 2.0, mockCut: 92 },
-    { name: "중앙대학교", major: "소프트웨어학부", region: "서울", category: "공학", emp: "75.0%", tuition: "830만원", type: "학생부종합", gpaCut: 2.2, mockCut: 90 },
-    { name: "서울과학기술대학교", major: "정밀화학과", region: "서울", category: "자연과학", emp: "68.2%", tuition: "540만원", type: "학생부교과", gpaCut: 2.4, mockCut: 85 },
-    { name: "이화여자대학교", major: "생명과학과", region: "서울", category: "자연과학", emp: "65.5%", tuition: "820만원", type: "학생부종합", gpaCut: 2.1, mockCut: 88 },
-    { name: "경희대학교", major: "경영학과", region: "서울", category: "인문사회", emp: "71.2%", tuition: "780만원", type: "학생부종합", gpaCut: 2.3, mockCut: 89 },
-    { name: "건국대학교", major: "미디어커뮤니케이션학과", region: "서울", category: "인문사회", emp: "70.1%", tuition: "790만원", type: "학생부종합", gpaCut: 2.2, mockCut: 87 },
-    { name: "국민대학교", major: "자동차공학과", region: "수도권", category: "공학", emp: "77.0%", tuition: "810만원", type: "학생부교과", gpaCut: 2.5, mockCut: 82 },
-    { name: "인하대학교", major: "정보통신공학과", region: "수도권", category: "공학", emp: "74.8%", tuition: "800만원", type: "학생부교과", gpaCut: 2.6, mockCut: 80 },
-    { name: "아주대학교", major: "소프트웨어학과", region: "수도권", category: "공학", emp: "78.2%", tuition: "820만원", type: "학생부종합", gpaCut: 2.5, mockCut: 83 },
-    { name: "부산대학교", major: "기계공학부", region: "지방거점", category: "공학", emp: "70.5%", tuition: "446만원", type: "학생부교과", gpaCut: 2.4, mockCut: 84 },
-    { name: "경북대학교", major: "전자공학부", region: "지방거점", category: "공학", emp: "72.0%", tuition: "450만원", type: "학생부교과", gpaCut: 2.5, mockCut: 83 },
-    { name: "홍익대학교", major: "시각디자인과", region: "서울", category: "예체능", emp: "66.0%", tuition: "900만원", type: "학생부종합", gpaCut: 1.7, mockCut: 94 }
-  ];
-
+  // --- 2. 대학교 API 검색기 ---
   const univRegionFilter = document.getElementById("univ-region-filter");
   const univSubjectFilter = document.getElementById("univ-subject-filter");
+  const univSearchInput = document.getElementById("univ-search-input");
+  const univStatus = document.getElementById("univ-result-status");
+  let univSearchRequestId = 0;
 
-  const syncUniversityTabGrades = () => {
-    const gpaLabel = document.getElementById("univ-sync-gpa");
-    const mockLabel = document.getElementById("univ-sync-mock");
-    if (gpaLabel) gpaLabel.textContent = `${studentState.gpa.toFixed(1)}등급`;
-    if (mockLabel) mockLabel.textContent = `${studentState.mock}%`;
-  };
+  const syncUniversityTabGrades = () => {};
 
-  const matchUniversities = () => {
+  const matchUniversities = async () => {
+    const requestId = ++univSearchRequestId;
+    const rawKeyword = (univSearchInput?.value || "").trim();
     const region = univRegionFilter ? univRegionFilter.value : "all";
     const subject = univSubjectFilter ? univSubjectFilter.value : "all";
     const tbody = document.getElementById("univ-matching-tbody");
     if (!tbody) return;
 
-    tbody.innerHTML = "";
+    if (univStatus) {
+      univStatus.textContent = "커리어넷 학교정보 API에서 대학교 정보를 불러오는 중입니다.";
+    }
+    tbody.innerHTML = `<tr><td colspan="6" style="padding: 28px; text-align: center; color: var(--muted);">대학교 정보를 불러오는 중입니다.</td></tr>`;
 
-    const filtered = univData.filter(univ => {
-      if (region !== "all" && univ.region !== region) return false;
-      if (subject !== "all" && univ.category !== subject) return false;
-      return true;
-    });
+    try {
+      const { schools, totalCount } = await fetchCareerNetSchools({
+        gubun: "univ_list",
+        rawKeyword,
+        region,
+        filterType: "all",
+        perPage: 200,
+        maxPages: 12
+      });
+      if (requestId !== univSearchRequestId) return;
+
+      const filtered = schools.filter((school) => regionMatchesSchool(school, region));
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">선택한 조건에 부합하는 대학 정보가 없습니다.</td></tr>`;
+        if (univStatus) {
+          univStatus.textContent = "커리어넷 학교정보 API에서 현재 조건과 일치하는 대학교를 찾지 못했습니다.";
+        }
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">검색 결과가 없습니다. 대학명 일부나 지역 조건을 바꿔 보세요.</td></tr>`;
       return;
     }
 
-    filtered.forEach(univ => {
-      let predictText = "";
-      let predictStyle = "";
-      
-      const gpaDiff = studentState.gpa - univ.gpaCut; 
-      const mockDiff = studentState.mock - univ.mockCut; 
-      
-      if (gpaDiff <= 0 && mockDiff >= 0) {
-        predictText = "안정 (A+)";
-        predictStyle = "background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 4px 10px;";
-      } else if (gpaDiff <= 0.3 && mockDiff >= -4) {
-        predictText = "적정 (B)";
-        predictStyle = "background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 4px 10px;";
-      } else if (gpaDiff <= 0.6 && mockDiff >= -8) {
-        predictText = "소신 (C)";
-        predictStyle = "background: #fffbeb; color: #d97706; border: 1px solid #fde68a; border-radius: 6px; padding: 4px 10px;";
-      } else {
-        predictText = "위험 (D)";
-        predictStyle = "background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 10px;";
+      if (univStatus) {
+        const subjectNote = subject === "all" ? "" : " 선택한 학과 계열은 아래 직업·학과 검색 탭에서 세부 학과 API로 다시 확인하세요.";
+        univStatus.textContent = `커리어넷 학교정보 API 기준 ${totalCount.toLocaleString("ko-KR")}곳 중 ${filtered.length.toLocaleString("ko-KR")}곳을 찾았습니다. 화면에는 100곳까지 표시됩니다.${subjectNote}`;
       }
 
+      tbody.innerHTML = "";
+      filtered.slice(0, 100).forEach((univ) => {
       const tr = document.createElement("tr");
       tr.style.borderBottom = "1px solid var(--soft-line)";
       tr.innerHTML = `
-        <td style="padding: 14px 16px; font-weight: 700; color: var(--ink);">${univ.name}</td>
-        <td style="padding: 14px 16px; color: var(--text);">${univ.major}</td>
-        <td style="padding: 14px 16px; color: var(--blue); font-weight: 700;">${univ.emp}</td>
-        <td style="padding: 14px 16px; color: var(--text);">${univ.tuition}</td>
-        <td style="padding: 14px 16px; color: var(--muted); font-size: 13px;">${univ.type} (기준선: ${univ.gpaCut}등급)</td>
-        <td style="padding: 14px 16px;"><span style="${predictStyle}">${predictText}</span></td>
+        <td style="padding: 14px 16px; font-weight: 800; color: var(--ink);">${escapeHtml(univ.name)}</td>
+        <td style="padding: 14px 16px; color: var(--text);">${escapeHtml(univ.rawRegion || univ.region)}</td>
+        <td style="padding: 14px 16px; color: var(--text);">${escapeHtml(univ.schoolGubun || univ.schoolType || "대학교")}</td>
+        <td style="padding: 14px 16px; color: var(--text);">${escapeHtml(univ.estType || "정보 없음")}</td>
+        <td style="padding: 14px 16px; color: var(--muted); font-size: 13px;">${escapeHtml(univ.address || univ.campus || "주소 정보 없음")}</td>
+        <td style="padding: 14px 16px;">${univ.link ? `<a class="hs-link table-link" href="${univ.link}" target="_blank" rel="noopener">홈페이지</a>` : `<span style="color: var(--muted); font-size: 12px;">링크 없음</span>`}</td>
       `;
       tbody.appendChild(tr);
     });
+    } catch (error) {
+      console.error(error);
+      if (requestId !== univSearchRequestId) return;
+      if (univStatus) {
+        univStatus.textContent = "커리어넷 학교정보 API 연결에 실패했습니다.";
+      }
+      tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">대학교 정보는 내장 데이터 없이 커리어넷 API에서만 불러옵니다. 네트워크 요청을 확인해 주세요.</td></tr>`;
+    }
+  };
+
+  window.jobbridgeRefreshExplore = () => {
+    matchHighSchools();
+    syncUniversityTabGrades();
+    matchUniversities();
   };
 
   univRegionFilter?.addEventListener("change", matchUniversities);
   univSubjectFilter?.addEventListener("change", matchUniversities);
+  univSearchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") matchUniversities();
+  });
+  univSearchInput?.addEventListener("input", () => {
+    window.clearTimeout(univSearchInput._jobbridgeTimer);
+    univSearchInput._jobbridgeTimer = window.setTimeout(matchUniversities, 350);
+  });
 
-  // --- 3. 간이 진로 흥미 검사 ---
-  const cnQuestions = [
-    {
-      q: "새로운 모바일 어플리케이션을 기획할 때 가장 관심이 가는 단계는 무엇인가요?",
-      answers: [
-        { text: "화면 레이아웃 디자인 및 감성적인 시각 연출 설계", score: "A" },
-        { text: "코딩 개발 및 서버 데이터베이스와의 연동 구현", score: "B" },
-        { text: "기획서 작성 및 타겟 분석과 마케팅 홍보 방안 도출", score: "C" }
+  // --- 3. 진로 흥미 정밀 검사 ---
+  const riasecProfiles = {
+    R: {
+      label: "현실형(실행·기술)",
+      icon: "🛠",
+      desc: "분명하고 실제적인 활동, 도구·기계·제작·정비처럼 손으로 확인하며 해결하는 일에 흥미가 큽니다.",
+      jobs: ["전기공학 기술자", "자동차 정비원", "소방관", "항공정비사"],
+      majors: ["전기전자공학과", "기계공학과", "항공정비학과", "토목공학과"],
+      programs: [
+        { title: "전기 회로와 안전 실습", provider: "지역 공업교육센터", location: "전국", date: "상시", detail: "기초 회로, 안전 수칙, 전기 직무를 체험합니다." },
+        { title: "자동차 구조 분해 관찰", provider: "자동차 진로체험관", location: "부산/경기", date: "방학", detail: "엔진, 제동장치, 전장 부품의 역할을 관찰합니다." }
       ]
     },
-    {
-      q: "여가 시간에 컴퓨터나 IT 기기로 작업할 때 가장 흥미로운 활동은?",
-      answers: [
-        { text: "디자인 툴을 이용해 사진을 보정하거나 캐릭터 일러스트 그리기", score: "A" },
-        { text: "자동화 스크립트를 짜보거나 가벼운 텍스트 웹 사이트 코딩하기", score: "B" },
-        { text: "요즘 유행하는 트렌드 키워드를 찾아 분석하고 피드 작성하기", score: "C" }
+    I: {
+      label: "탐구형(분석·연구)",
+      icon: "🔬",
+      desc: "지적 호기심이 강하고 자료를 분석하며 과학·수학·실험·연구 문제를 깊게 생각하는 활동에 어울립니다.",
+      jobs: ["생명공학 연구원", "인공지능 전문가", "화학공학 연구원", "환경공학 기술자"],
+      majors: ["생명공학과", "인공지능학과", "화학공학과", "환경공학과"],
+      programs: [
+        { title: "생명과학 실험 설계 워크숍", provider: "과학문화센터", location: "온라인/충북", date: "분기별", detail: "가설, 변인 통제, 실험 보고서 작성을 연습합니다." },
+        { title: "환경 데이터 분석 프로젝트", provider: "환경교육센터", location: "교내/지역", date: "상시", detail: "수질·대기 데이터를 해석하고 개선 방안을 제안합니다." }
       ]
     },
-    {
-      q: "모둠 프로젝트를 진행할 때 본인이 가장 잘 소화할 수 있는 역할은?",
-      answers: [
-        { text: "발표 슬라이드 제작 및 세부 시각적 연출과 꾸미기 전담", score: "A" },
-        { text: "핵심 기술 설계 및 알고리즘 구현 기여", score: "B" },
-        { text: "발표자 조율 및 프로젝트 전체 일정 관리와 스케줄 조절", score: "C" }
+    A: {
+      label: "예술형(창작·표현)",
+      icon: "🎨",
+      desc: "상상력과 표현력이 풍부하며 글, 그림, 영상, 음악, 공연, 디자인으로 생각을 자유롭게 드러내는 활동에 맞습니다.",
+      jobs: ["디지털 콘텐츠 제작자", "UX/UI 디자이너", "작가", "공연예술가"],
+      majors: ["디자인학과", "디지털콘텐츠과", "문예창작학과", "미디어커뮤니케이션학과"],
+      programs: [
+        { title: "영상 편집과 스토리보드 제작", provider: "미디어센터", location: "지역별", date: "주말", detail: "기획, 촬영, 편집, 저작권 기초를 배웁니다." },
+        { title: "브랜드 포스터 디자인 실습", provider: "디자인교육센터", location: "서울/경기", date: "방학", detail: "콘셉트, 색상, 타이포그래피를 결과물로 연결합니다." }
       ]
     },
-    {
-      q: "IT 및 디지털 과학 뉴스 중 눈길을 끄는 흥미로운 소식은?",
-      answers: [
-        { text: "새로운 생성형 AI 기반 일러스트 툴과 메타버스 예술 전시", score: "A" },
-        { text: "양자 컴퓨터 기술 진보와 차세대 브라우저 최적화 성능 패치", score: "B" },
-        { text: "테슬라의 플랫폼 비즈니스 유료 구독화 전략과 브랜딩 성공 요인", score: "C" }
+    S: {
+      label: "사회형(교육·돌봄)",
+      icon: "🤝",
+      desc: "사람을 돕고 설명하며 협력하는 활동에 흥미가 높고, 교육·상담·보건·복지 분야와 연결됩니다.",
+      jobs: ["교사", "상담심리사", "간호사", "사회복지사"],
+      majors: ["교육학과", "심리학과", "간호학과", "사회복지학과"],
+      programs: [
+        { title: "또래 멘토링 수업 설계", provider: "학교 진로부", location: "교내", date: "학기 중", detail: "학습 자료를 만들고 설명 방식에 대한 피드백을 받습니다." },
+        { title: "응급처치와 보건 캠페인", provider: "청소년 보건교육센터", location: "전국", date: "방학", detail: "건강, 안전, 돌봄 직업군을 함께 탐색합니다." }
       ]
     },
-    {
-      q: "나만의 스타트업 서비스를 기획한다면 구현해보고 싶은 테마는?",
-      answers: [
-        { text: "개인 창작자들의 아름다운 포트폴리오를 감상할 수 있는 갤러리 플랫폼", score: "A" },
-        { text: "학생들의 일정을 효율적으로 분석해주는 인공지능 일정 자동화 캘린더", score: "B" },
-        { text: "동네 상권을 분석하여 유망 사업 정보 트렌드를 모아 보여주는 지도 서비스", score: "C" }
+    E: {
+      label: "진취형(설득·경영)",
+      icon: "📈",
+      desc: "리더 역할, 설득, 발표, 사업 기획, 조직 운영처럼 사람에게 영향을 주고 목표를 달성하는 활동에 흥미가 큽니다.",
+      jobs: ["마케터", "상품기획자", "서비스 기획자", "호텔리어"],
+      majors: ["경영학과", "e-비즈니스과", "호텔관광학과", "미디어커뮤니케이션학과"],
+      programs: [
+        { title: "청소년 창업 아이디어 피칭", provider: "창업교육센터", location: "온라인/수도권", date: "월 1회", detail: "문제 발견, 고객 분석, 발표 자료를 만듭니다." },
+        { title: "관광 서비스 기획 실습", provider: "관광진로센터", location: "서울/부산", date: "예약제", detail: "고객 경험과 서비스 흐름을 설계합니다." }
+      ]
+    },
+    C: {
+      label: "관습형(자료·사무)",
+      icon: "📋",
+      desc: "정해진 원칙을 따르고 자료, 숫자, 기록, 문서를 정확하게 정리하는 활동에 강점이 있습니다.",
+      jobs: ["회계사", "은행원", "공무원", "행정사무원"],
+      majors: ["회계학과", "경제학과", "행정학과", "경영학과"],
+      programs: [
+        { title: "모의 회계 장부와 예산표 만들기", provider: "금융교육기관", location: "전국", date: "상시", detail: "수입·지출, 예산, 회계 문서 기초를 익힙니다." },
+        { title: "모의 은행 업무와 금융 기초", provider: "청소년 금융교실", location: "온라인/전국", date: "월 1회", detail: "저축, 대출, 금융 윤리, 사무 절차를 배웁니다." }
       ]
     }
+  };
+
+  const likertOptions = [
+    { label: "전혀 그렇지 않다", value: 1 },
+    { label: "그렇지 않다", value: 2 },
+    { label: "보통이다", value: 3 },
+    { label: "그렇다", value: 4 },
+    { label: "매우 그렇다", value: 5 }
+  ];
+
+  const cnQuestions = [
+    { type: "R", q: "도구나 장비를 직접 다루는 활동이 흥미롭다." },
+    { type: "I", q: "왜 그런 결과가 나왔는지 원리와 근거를 끝까지 확인하고 싶다." },
+    { type: "A", q: "글, 그림, 영상, 음악 등으로 내 생각을 표현하는 일이 좋다." },
+    { type: "S", q: "친구가 어려워하는 내용을 이해할 때까지 설명해 주는 편이다." },
+    { type: "E", q: "사람들 앞에서 아이디어를 제안하고 설득하는 일이 어렵지 않다." },
+    { type: "C", q: "자료, 일정, 숫자, 규칙을 정확하게 정리하는 일이 편하다." },
+    { type: "R", q: "기계, 전기, 자동차, 로봇, 조리처럼 손으로 익히는 실습이 잘 맞는다." },
+    { type: "I", q: "실험, 관찰, 조사, 데이터 분석처럼 증거를 모으는 과정이 재미있다." },
+    { type: "A", q: "정답이 하나로 정해진 과제보다 새롭게 구성하는 과제가 더 끌린다." },
+    { type: "S", q: "상담, 교육, 보건, 복지처럼 사람을 돕는 분야에 관심이 있다." },
+    { type: "E", q: "팀 활동에서 방향을 정하고 역할을 나누는 일을 자주 맡는다." },
+    { type: "C", q: "보고서 형식, 표, 체크리스트, 절차가 정리되어 있으면 일이 잘 풀린다." },
+    { type: "R", q: "컴퓨터 화면보다 실제 장치나 재료를 만지며 배우는 활동도 좋아한다." },
+    { type: "I", q: "과학, 수학, 사회 현상을 깊게 파고드는 탐구 보고서를 써보고 싶다." },
+    { type: "A", q: "디자인, 콘텐츠, 공연, 글쓰기처럼 분위기와 메시지를 만드는 일에 끌린다." },
+    { type: "S", q: "다른 사람의 감정과 상황을 살피고 맞춰 주는 편이다." },
+    { type: "E", q: "창업, 홍보, 마케팅, 캠페인처럼 사람들의 선택을 움직이는 일이 흥미롭다." },
+    { type: "C", q: "회계, 행정, 금융, 기록 관리처럼 정확성이 중요한 일을 해보고 싶다." },
+    { type: "R", q: "고장 난 물건을 살펴보거나 구조를 알아내는 활동에 호기심이 생긴다." },
+    { type: "I", q: "가설을 세우고 결과가 맞는지 검증하는 과정이 즐겁다." },
+    { type: "A", q: "같은 자료라도 보기 좋고 인상적으로 전달하는 방법을 고민한다." },
+    { type: "S", q: "모둠 안에서 갈등이 생기면 중간에서 조율하려고 한다." },
+    { type: "E", q: "목표를 세우고 사람들을 모아 실행까지 밀고 가는 편이다." },
+    { type: "C", q: "작업을 시작하기 전에 기준, 순서, 필요한 자료를 먼저 정리한다." },
+    { type: "R", q: "현장 체험, 실습실, 공방, 작업장 같은 공간에서 배우는 것이 좋다." },
+    { type: "I", q: "새로운 지식을 배우면 관련 자료를 더 찾아보는 편이다." },
+    { type: "A", q: "나만의 스타일이나 관점을 결과물에 담고 싶다." },
+    { type: "S", q: "누군가의 성장이나 회복을 돕는 일을 하면 보람을 느낀다." },
+    { type: "E", q: "발표, 토론, 면접처럼 말로 의견을 전달하는 활동에 자신이 있다." },
+    { type: "C", q: "실수 없이 확인하고 마감에 맞춰 완성하는 일을 중요하게 생각한다." },
+    { type: "R", q: "에너지, 건설, 항공, 제조, 조리, 스포츠처럼 실제 기능을 쓰는 분야가 궁금하다." },
+    { type: "I", q: "생명, 환경, 인공지능, 우주, 신소재처럼 연구 주제가 넓은 분야에 끌린다." },
+    { type: "A", q: "사람들이 보고 듣고 느끼는 경험을 설계하는 일이 흥미롭다." },
+    { type: "S", q: "교육 봉사, 멘토링, 캠페인처럼 사람과 직접 만나는 활동을 해보고 싶다." },
+    { type: "E", q: "새로운 서비스나 상품을 기획해 실제로 운영해 보고 싶다." },
+    { type: "C", q: "문서, 기록, 통계, 예산처럼 체계적으로 관리하는 분야가 잘 맞을 것 같다." }
   ];
 
   let currentQ = 0;
-  let qScores = { A: 0, B: 0, C: 0 };
+  let qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+  let qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+  let qResponses = [];
 
   const btnStartTest = document.getElementById("btn-start-test");
   const btnRestartTest = document.getElementById("btn-restart-test");
@@ -2258,27 +3347,32 @@ function setupExplorePortal() {
   const questionBox = document.getElementById("test-question-box");
   const resultBox = document.getElementById("test-result-box");
   const qCurrentNum = document.getElementById("q-current-num");
+  const qTotalNum = document.getElementById("q-total-num");
   const qText = document.getElementById("q-text");
 
   const renderQuestion = () => {
     if (!qCurrentNum || !qText) return;
     
     qCurrentNum.textContent = currentQ + 1;
-    qText.textContent = cnQuestions[currentQ].q;
+    if (qTotalNum) qTotalNum.textContent = cnQuestions.length;
+    const question = cnQuestions[currentQ];
+    qText.textContent = question.q;
 
     const answersList = document.querySelector(".test-answers-list");
     if (!answersList) return;
 
     answersList.innerHTML = "";
-    cnQuestions[currentQ].answers.forEach(ans => {
+    likertOptions.forEach((option) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "answer-btn";
-      btn.textContent = ans.text;
+      btn.className = "answer-btn scale-answer";
+      btn.innerHTML = `<span>${option.value}</span><strong>${option.label}</strong>`;
       btn.onclick = () => {
-        qScores[ans.score]++;
+        qScores[question.type] += option.value;
+        qCounts[question.type]++;
+        qResponses.push({ type: question.type, value: option.value });
         currentQ++;
-        if (currentQ < 5) {
+        if (currentQ < cnQuestions.length) {
           renderQuestion();
         } else {
           showTestResult();
@@ -2286,6 +3380,51 @@ function setupExplorePortal() {
       };
       answersList.appendChild(btn);
     });
+  };
+
+  const getSortedInterestScores = () => Object.keys(riasecProfiles)
+    .map((key) => ({
+      key,
+      score: qScores[key],
+      count: qCounts[key] || 1,
+      max: (qCounts[key] || 1) * 5,
+      profile: riasecProfiles[key]
+    }))
+    .map((item) => ({ ...item, percent: Math.round((item.score / item.max) * 100) }))
+    .sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+
+  const renderTestScoreSummary = (sortedScores) => {
+    const summary = document.getElementById("test-score-summary");
+    if (!summary) return;
+
+    const topThree = sortedScores.slice(0, 3);
+    const uniqueAnswers = new Set(qResponses.map((item) => item.value)).size;
+    const clarityGap = (topThree[0]?.score || 0) - (topThree[2]?.score || 0);
+    const clarityText = uniqueAnswers <= 1
+      ? "응답이 한쪽으로 치우쳐 재검사 권장"
+      : clarityGap >= 8
+        ? "유형이 뚜렷함"
+        : clarityGap >= 4
+          ? "주요 유형이 어느 정도 구분됨"
+          : "복합 흥미형";
+
+    summary.innerHTML = `
+      <div class="test-code-card">
+        <span>상위 흥미 코드</span>
+        <strong>${topThree.map((item) => item.key).join("-")}</strong>
+        <p>${topThree.map((item) => item.profile.label).join(" · ")}</p>
+        <em>${clarityText}</em>
+      </div>
+      <div class="test-score-bars">
+        ${sortedScores.map((item) => `
+          <div class="test-score-row">
+            <div><strong>${item.profile.icon} ${item.profile.label}</strong><span>${item.score}/${item.max}점</span></div>
+            <i><b style="width:${item.percent}%"></b></i>
+          </div>
+        `).join("")}
+      </div>
+      <p class="test-score-note">이 결과는 진로 상담과 포트폴리오 설계를 돕기 위한 참고용입니다. 실제 진로 결정은 활동 기록, 성적, 상담 피드백과 함께 보세요.</p>
+    `;
   };
 
   const showTestResult = () => {
@@ -2296,39 +3435,18 @@ function setupExplorePortal() {
     const desc = document.getElementById("test-result-desc");
     if (!badge || !desc) return;
 
-    let resType = "";
-    let resTitle = "";
-    let resDesc = "";
-    let recommendedPrograms = [];
+    const sortedScores = getSortedInterestScores();
+    const resultKey = sortedScores[0]?.key || "I";
+    const result = riasecProfiles[resultKey];
+    const topProfiles = sortedScores.slice(0, 3).map((item) => item.profile);
+    const recommendedPrograms = topProfiles.flatMap((profile) => profile.programs).slice(0, 6);
+    const topJobs = Array.from(new Set(topProfiles.flatMap((profile) => profile.jobs))).slice(0, 8);
+    const topMajors = Array.from(new Set(topProfiles.flatMap((profile) => profile.majors))).slice(0, 8);
 
-    if (qScores.B >= qScores.A && qScores.B >= qScores.C) {
-      resType = "B";
-      resTitle = "💻 공학 및 시스템 소프트웨어 개발자형 (Developer)";
-      resDesc = "논리적 추론 및 알고리즘 분석 능력이 우수하며 시스템 구현에 큰 흥미를 느낍니다. 컴퓨터공학과, 인공지능학과 진학이 어울리며 웹 개발자, 인공지능 연구원 등의 직업군이 강력 추천됩니다.";
-      recommendedPrograms = [
-        { title: "네이버 커넥트 - 청소년 웹 코딩 개발 주말 단기 캠프", provider: "네이버재단", location: "온라인/분당", date: "2026.06.12 (토) 10:00" },
-        { title: "인공지능 연구소 - 지능형 챗봇 제작 및 실습 해커톤", provider: "AI융합센터", location: "서울 강남구", date: "2026.06.20 (토) 09:00" }
-      ];
-    } else if (qScores.A >= qScores.B && qScores.A >= qScores.C) {
-      resType = "A";
-      resTitle = "🎨 크리에이티브 미디어 및 UI/UX 디자인형 (Designer)";
-      resDesc = "미적 감각이 뛰어나며 사용자 중심의 시각 표현 및 미디어 제작에 소질이 있습니다. 디자인학과, 미디어커뮤니케이션학과 진학이 적합하며 UX/UI 디자이너, 영상 에디터 등이 추천됩니다.";
-      recommendedPrograms = [
-        { title: "디자인진흥원 - 피그마(Figma) 활용 앱 UI/UX 디자인 워크숍", provider: "한국디자인협회", location: "서울 마포구", date: "2026.06.05 (금) 14:00" },
-        { title: "디지털 콘텐츠 센터 - 모바일 단편 영상 숏폼 편집 교실", provider: "영상문화센터", location: "경기 수원시", date: "2026.06.18 (목) 16:00" }
-      ];
-    } else {
-      resType = "C";
-      resTitle = "📈 IT 비즈니스 기획 및 데이터 분석 PM형 (Planner)";
-      resDesc = "사람과 기술을 조율하는 소통 역량이 우수하고 트렌드 파악 및 비즈니스 마케팅 전략 수립에 흥미를 느낍니다. 경영학과, 빅데이터분석학과 전공이 어울리며 IT 서비스 기획자, 마케터 등이 좋습니다.";
-      recommendedPrograms = [
-        { title: "구글 스타트업 캠퍼스 - 청소년 창업 경진대회 아이디어 피칭", provider: "구글 코리아", location: "서울 강남구", date: "2026.06.15 (월) 13:00" },
-        { title: "데이터사이언스 연구회 - 구글 트렌드 분석 및 온라인 브랜딩 세미나", provider: "비즈니스포럼", location: "온라인/대구", date: "2026.06.22 (월) 15:00" }
-      ];
-    }
-
-    badge.textContent = resTitle;
-    desc.textContent = resDesc;
+    badge.textContent = `${result.icon} ${result.label}`;
+    desc.textContent = `${result.desc} 상위 조합 기준 추천 직업은 ${topJobs.join(", ")}이고, 관련 학과는 ${topMajors.join(", ")}입니다.`;
+    renderTestScoreSummary(sortedScores);
+    setStudentInterests(topProfiles.map((profile) => profile.label), { persist: Boolean(currentUser), addTodo: true });
 
     const progListEl = document.getElementById("experience-program-list");
     if (!progListEl) return;
@@ -2340,15 +3458,15 @@ function setupExplorePortal() {
       card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <span class="cn-badge">체험 연계</span>
-          <span style="font-size: 11.5px; background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 4px; font-weight: 800;">신청 가능</span>
+          <span style="font-size: 11.5px; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-weight: 800;">체험 예시</span>
         </div>
         <h4 style="margin: 6px 0 0; font-size: 15.5px; color: var(--ink); font-weight: 800;">${prog.title}</h4>
-        <p style="font-size: 13px; color: var(--text); margin-top: 8px; margin-bottom: 8px; text-align: left;"><b>체험처:</b> ${prog.provider} | <b>지역:</b> ${prog.location}</p>
-        <div class="cn-meta" style="font-size: 12px; color: var(--muted); border-top: 1px solid var(--soft-line); padding-top: 10px; margin-top: auto; text-align: left;">📅 일시: ${prog.date}</div>
-        <button type="button" class="primary btn-apply-prog" style="width: 100%; height: 38px; border: 0; margin-top: 8px; cursor: pointer; border-radius: 8px; font-weight: 700;">체험 신청하기</button>
+        <p style="font-size: 13px; color: var(--text); margin-top: 8px; margin-bottom: 8px; text-align: left;">${prog.detail}</p>
+        <div class="cn-meta" style="font-size: 12px; color: var(--muted); border-top: 1px solid var(--soft-line); padding-top: 10px; margin-top: auto; text-align: left;"><b>운영:</b> ${prog.provider}<br><b>장소:</b> ${prog.location}<br><b>일정:</b> ${prog.date}</div>
+        <button type="button" class="primary btn-apply-prog" style="width: 100%; height: 38px; border: 0; margin-top: 8px; cursor: pointer; border-radius: 8px; font-weight: 700;">할 일에 추가</button>
       `;
       card.querySelector(".btn-apply-prog").onclick = () => {
-        showToast(`🎉 [${prog.title}] 신청이 완료되었습니다! 일정이 추가되었습니다.`);
+        showToast(`[${prog.title}] 체험 준비 할 일이 추가되었습니다.`);
         addTodoItem(`${prog.title.substring(0, 10)}... 참가하기`);
       };
       progListEl.appendChild(card);
@@ -2359,7 +3477,9 @@ function setupExplorePortal() {
     if (introBox) introBox.style.display = "none";
     if (questionBox) questionBox.style.display = "block";
     currentQ = 0;
-    qScores = { A: 0, B: 0, C: 0 };
+    qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+    qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+    qResponses = [];
     renderQuestion();
   });
 
@@ -2367,77 +3487,231 @@ function setupExplorePortal() {
     if (resultBox) resultBox.style.display = "none";
     if (questionBox) questionBox.style.display = "block";
     currentQ = 0;
-    qScores = { A: 0, B: 0, C: 0 };
+    qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+    qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+    qResponses = [];
     renderQuestion();
   });
 
-  // --- 4. 커리어넷 실시간 백과사전 ---
+  const renderInterestDirectory = () => {
+    const grid = document.getElementById("interest-field-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    Object.values(riasecProfiles).forEach((profile) => {
+      const card = document.createElement("article");
+      card.className = "interest-field-card";
+      card.innerHTML = `
+        <div class="field-card-title"><span>${profile.icon}</span><strong>${profile.label}</strong></div>
+        <p>${profile.desc}</p>
+        <dl>
+          <div><dt>대표 직업</dt><dd>${profile.jobs.join(", ")}</dd></div>
+          <div><dt>관련 학과</dt><dd>${profile.majors.join(", ")}</dd></div>
+        </dl>
+      `;
+      grid.appendChild(card);
+    });
+  };
+
+  const renderExperienceDirectory = () => {
+    const list = document.getElementById("experience-directory-list");
+    const filter = document.getElementById("experience-field-filter")?.value || "all";
+    if (!list) return;
+    const programs = Object.values(riasecProfiles).flatMap((profile) => {
+      const fieldLabel = profile.label.replace(/\(.+\)/, "");
+      return profile.programs.map((program) => ({ ...program, fieldLabel }));
+    }).filter((program) => filter === "all" || program.fieldLabel.includes(filter));
+
+    list.innerHTML = "";
+    programs.forEach((program) => {
+      const card = document.createElement("article");
+      card.className = "cn-result-card experience-directory-card";
+      card.innerHTML = `
+        <span class="cn-badge">${program.fieldLabel}</span>
+        <h4>${program.title}</h4>
+        <p>${program.detail}</p>
+        <div class="cn-meta"><b>운영:</b> ${program.provider}<br><b>장소:</b> ${program.location}<br><b>일정:</b> ${program.date}</div>
+      `;
+      list.appendChild(card);
+    });
+  };
+
+  renderInterestDirectory();
+  renderExperienceDirectory();
+  document.getElementById("experience-field-filter")?.addEventListener("change", renderExperienceDirectory);
+
+  // --- 4. 커리어넷 직업·학과 API 검색 ---
   const searchInput = document.getElementById("cn-search-input");
   const searchBtn = document.getElementById("btn-cn-search");
   const resultsList = document.getElementById("cn-results-list");
   const searchStatus = document.getElementById("cn-search-status");
+  const cnFieldFilter = document.getElementById("cn-field-filter");
+
+  function mapCareerNetJob(item = {}) {
+    const seq = item.job_cd || item.seq || item.jobdicSeq || item.job_code || "";
+    return {
+      name: stripApiText(item.job_nm || item.job || "직업명 미상"),
+      category: stripApiText(item.top_nm || item.profession || item.tob_nm || "직업분류 정보 없음"),
+      field: stripApiText(item.aptit_name || item.jobSe || ""),
+      summary: stripApiText(item.work || item.summary || "커리어넷 직업백과에서 제공한 직업 정보입니다."),
+      wage: stripApiText(item.wage || item.salery || "정보 없음"),
+      related: stripApiText(item.rel_job_nm || item.similarJob || item.similarjob || ""),
+      seq,
+      link: seq ? `https://www.career.go.kr/cnet/front/base/job/jobView.do?SEQ=${encodeURIComponent(seq)}` : ""
+    };
+  }
+
+  function mapCareerNetMajor(item = {}) {
+    const seq = item.majorSeq || item.MAJOR_SEQ || item.SEQ || "";
+    const name = item.facilName || item.mClass || item.majorNm || item.major || item.MAJOR_NM || "학과명 미상";
+    return {
+      name: stripApiText(name),
+      category: stripApiText(item.lClass || item.category || "계열 정보 없음"),
+      summary: stripApiText(item.summary || item.purpose || item.interest || "커리어넷 학과정보 API에서 제공한 학과 정보입니다."),
+      jobs: stripApiText(item.relatedjob || item.jobNames || item.jobs || ""),
+      department: stripApiText(item.department || item.mClass || item.facilName || ""),
+      seq,
+      link: seq ? `https://www.career.go.kr/cnet/front/base/major/FunivMajorView.do?SEQ=${encodeURIComponent(seq)}` : ""
+    };
+  }
+
+  async function fetchCareerNetJobs({ query, field }) {
+    const cacheKey = JSON.stringify({ type: "jobs", query, field });
+    if (careerNetDictionaryCache.has(cacheKey)) return careerNetDictionaryCache.get(cacheKey);
+
+    const jobs = [];
+    let totalCount = 0;
+    const baseParams = { apiKey: CAREERNET_API_KEY };
+    if (query) baseParams.searchJobNm = query;
+    if (field !== "all" && careerNetJobCategoryCodes[field]) {
+      baseParams.searchJobCd = careerNetJobCategoryCodes[field];
+    }
+
+    for (let page = 1; page <= 60; page++) {
+      const params = new URLSearchParams({ ...baseParams, pageIndex: String(page) });
+      const response = await fetch(`${CAREERNET_JOB_API}?${params.toString()}`);
+      if (!response.ok) throw new Error("커리어넷 직업백과 API 응답 실패");
+      const data = await response.json();
+      const list = toArray(data.jobs);
+      if (!list.length) break;
+      totalCount = Number(data.count || totalCount || list.length);
+      jobs.push(...list.map(mapCareerNetJob));
+      if (jobs.length >= totalCount) break;
+    }
+
+    const result = { items: jobs, totalCount: totalCount || jobs.length };
+    careerNetDictionaryCache.set(cacheKey, result);
+    return result;
+  }
+
+  async function fetchCareerNetMajors({ query, field }) {
+    const cacheKey = JSON.stringify({ type: "majors", query, field });
+    if (careerNetDictionaryCache.has(cacheKey)) return careerNetDictionaryCache.get(cacheKey);
+
+    const baseParams = {
+      apiKey: CAREERNET_API_KEY,
+      svcType: "api",
+      svcCode: "MAJOR",
+      contentType: "json",
+      gubun: "univ_list",
+      perPage: "100"
+    };
+    if (query) baseParams.searchTitle = query;
+    if (field !== "all" && careerNetMajorSubjectCodes[field]) {
+      baseParams.subject = careerNetMajorSubjectCodes[field];
+    }
+
+    const majors = [];
+    let totalCount = 0;
+    for (let page = 1; page <= 20; page++) {
+      const params = new URLSearchParams({ ...baseParams, thisPage: String(page) });
+      const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
+      if (!response.ok) throw new Error("커리어넷 학과정보 API 응답 실패");
+      const data = await response.json();
+      const list = getCareerNetContent(data);
+      if (!list.length) break;
+      totalCount = Number(list[0]?.totalCount || data?.dataSearch?.totalCount || totalCount || list.length);
+      majors.push(...list.map(mapCareerNetMajor));
+      if (majors.length >= totalCount) break;
+    }
+
+    const result = { items: majors, totalCount: totalCount || majors.length };
+    careerNetDictionaryCache.set(cacheKey, result);
+    return result;
+  }
+
+  async function searchCareerNetDictionary(query, type, field) {
+    const result = type === "jobs"
+      ? await fetchCareerNetJobs({ query, field })
+      : await fetchCareerNetMajors({ query, field });
+    const items = result.items.filter((item) => {
+      if (field === "all") return true;
+      const haystack = [item.name, item.category, item.field, item.summary, item.jobs, item.related, item.department].join(" ");
+      return matchesCareerField(haystack, field);
+    });
+    return { items, totalCount: result.totalCount };
+  }
 
   const runCnSearch = async () => {
     if (!searchInput || !resultsList) return;
     const query = searchInput.value.trim();
     const type = document.querySelector('input[name="cn-search-type"]:checked')?.value || "jobs";
-    
-    if (!query) {
-      showToast("검색어를 입력해 주세요!");
-      return;
-    }
+    const field = cnFieldFilter?.value || "all";
 
     if (searchStatus) {
-      searchStatus.textContent = "🔍 커리어넷 오픈 API 데이터 검색 중...";
+      searchStatus.textContent = "커리어넷 API에서 검색 중입니다.";
       searchStatus.style.display = "block";
     }
 
-    resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);"><div class="spinner" style="margin: 0 auto 16px;"></div>커리어넷 API 데이터 조회 중...</div>`;
+    resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);"><div class="spinner" style="margin: 0 auto 16px;"></div>커리어넷 정보를 불러오는 중...</div>`;
 
     try {
-      const endpoint = type === "jobs" ? "/api/careernet/jobs" : "/api/careernet/majors";
-      const response = await fetch(`${endpoint}?query=${encodeURIComponent(query)}`);
-      const data = await response.json();
+      const { items, totalCount } = await searchCareerNetDictionary(query, type, field);
 
       if (searchStatus) {
-        searchStatus.textContent = `✅ 검색 완료: 총 ${data.length}건이 발견되었습니다.`;
+        searchStatus.textContent = `커리어넷 ${type === "jobs" ? "직업백과" : "학과정보"} API 기준 ${totalCount.toLocaleString("ko-KR")}건 중 ${items.length.toLocaleString("ko-KR")}건을 표시합니다.`;
       }
 
       resultsList.innerHTML = "";
-      if (data.length === 0) {
+      if (items.length === 0) {
         resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">검색 결과가 없습니다. 다른 검색어를 입력해 보세요.</div>`;
         return;
       }
 
-      data.forEach(item => {
+      items.slice(0, 120).forEach(item => {
         const card = document.createElement("div");
         card.className = "cn-result-card";
         
         let metaHtml = "";
         let regBtnText = "";
         if (type === "jobs") {
-          metaHtml = `💵 <b>평균 연봉:</b> ${item.wage || '정보없음'} <br> 💼 <b>직업군:</b> ${item.category || item.field || '미분류'}`;
+          metaHtml = `<b>평균 연봉:</b> ${escapeHtml(item.wage || "정보 없음")}<br><b>직업분류:</b> ${escapeHtml(item.category || item.field || "미분류")}${item.related ? `<br><b>관련직업:</b> ${escapeHtml(item.related)}` : ""}`;
           regBtnText = "내 희망 직업으로 등록";
         } else {
-          metaHtml = `🎓 <b>계열:</b> ${item.category || '미분류'} <br> 💼 <b>진출 직업:</b> ${item.jobs || '정보없음'}`;
+          metaHtml = `<b>계열:</b> ${escapeHtml(item.category || "미분류")}<br><b>세부학과:</b> ${escapeHtml(item.department || item.name)}${item.jobs ? `<br><b>관련직업:</b> ${escapeHtml(item.jobs)}` : ""}`;
           regBtnText = "내 희망 학과로 등록";
         }
 
         card.innerHTML = `
-          <span class="cn-badge">${type === "jobs" ? "직업 사전" : "학과 사전"}</span>
-          <h4 style="margin: 6px 0 0; font-size: 16.5px; color: var(--ink); font-weight: 800;">${item.name}</h4>
-          <p style="font-size: 13.5px; color: var(--text); margin-top: 8px; margin-bottom: 8px;">${item.summary}</p>
+          <span class="cn-badge">${type === "jobs" ? "직업 정보" : "학과 정보"}</span>
+          <h4 style="margin: 6px 0 0; font-size: 16.5px; color: var(--ink); font-weight: 800;">${escapeHtml(item.name)}</h4>
+          <p style="font-size: 13.5px; color: var(--text); margin-top: 8px; margin-bottom: 8px;">${escapeHtml(item.summary)}</p>
           <div class="cn-meta" style="font-size: 12px; color: var(--muted); border-top: 1px solid var(--soft-line); padding-top: 10px; margin-top: auto; margin-bottom: 12px;">${metaHtml}</div>
+          ${item.link ? `<a class="cn-link" href="${item.link}" target="_blank" rel="noopener">커리어넷 상세 정보 열기</a>` : ""}
           <button type="button" class="primary btn-reg-target" style="width: 100%; height: 38px; border: 0; cursor: pointer; border-radius: 8px; font-weight: 700;">${regBtnText}</button>
         `;
 
         card.querySelector(".btn-reg-target").onclick = async () => {
+          if (!currentUser) {
+            showToast("로그인 후 희망 직업·학과를 저장할 수 있습니다.");
+            setView("auth");
+            return;
+          }
           if (type === "jobs") {
             studentState.job = item.name;
-            showToast(`🎯 내 프로필 희망 직업이 [${item.name}]으로 변경되었습니다.`);
+            showToast(`내 프로필 희망 직업이 [${item.name}]으로 변경되었습니다.`);
           } else {
             studentState.major = item.name;
-            showToast(`🎯 내 프로필 희망 학과가 [${item.name}]으로 변경되었습니다.`);
+            showToast(`내 프로필 희망 학과가 [${item.name}]으로 변경되었습니다.`);
           }
           await saveStudentStateToServer();
           syncProfileInputsToUI();
@@ -2447,12 +3721,16 @@ function setupExplorePortal() {
       });
     } catch (err) {
       console.error(err);
-      if (searchStatus) searchStatus.textContent = "❌ 검색 중 오류가 발생했습니다.";
-      resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">오류가 발생해 폴백 데이터를 복원하지 못했습니다.</div>`;
+      if (searchStatus) searchStatus.textContent = "커리어넷 API 검색 중 오류가 발생했습니다.";
+      resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">내장 결과 없이 커리어넷 API에서만 검색합니다. 네트워크 요청을 확인해 주세요.</div>`;
     }
   };
 
   searchBtn?.addEventListener("click", runCnSearch);
+  cnFieldFilter?.addEventListener("change", runCnSearch);
+  document.querySelectorAll('input[name="cn-search-type"]').forEach((radio) => {
+    radio.addEventListener("change", runCnSearch);
+  });
   searchInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") runCnSearch();
   });
@@ -2464,91 +3742,37 @@ function syncIntegratedInputs() {
   const jobEl = document.getElementById("rm-job");
   const majorEl = document.getElementById("rm-major");
   
-  if (nameEl) nameEl.textContent = studentState.name;
-  if (gradeEl) gradeEl.textContent = studentState.grade;
-  if (jobEl) jobEl.textContent = studentState.job;
-  if (majorEl) majorEl.textContent = studentState.major;
+  if (nameEl) nameEl.textContent = studentState.name || "이름 미입력";
+  if (gradeEl) gradeEl.textContent = studentState.grade || "학년 미입력";
+  if (jobEl) jobEl.textContent = studentState.job || "미선택";
+  if (majorEl) majorEl.textContent = studentState.major || "미선택";
 
   const gInput = document.getElementById("rm-input-gpa");
   const mInput = document.getElementById("rm-input-mock");
-  if (gInput) gInput.value = studentState.gpa;
-  if (mInput) mInput.value = studentState.mock;
+  if (gInput) gInput.value = studentState.gpa || "";
+  if (mInput) mInput.value = studentState.mock || "";
 }
 
 function setupSimulator() {
-  const modal = document.getElementById("sys-simulator-modal");
-  const modalTitle = document.getElementById("sim-modal-title");
-  const modalBody = document.getElementById("sim-modal-body-content");
-  const disadvantageBox = document.getElementById("sim-disadvantage-highlight");
-  const disadvantageText = document.getElementById("sim-disadvantage-text");
-  const btnAction = document.getElementById("btn-sim-action");
-  const btnSolveJobBridge = document.getElementById("btn-sim-solve-jobbridge");
-  const btnCloseSim = document.getElementById("btn-close-sim");
-  const btnSimClose = document.getElementById("btn-sim-close");
-  
-  let currentSystem = "";
-  
-  document.querySelectorAll(".btn-simulate").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const sysId = btn.dataset.simulate;
-      const data = systemSimData[sysId];
-      if (!data) return;
-      
-      currentSystem = sysId;
-      
-      modalTitle.textContent = data.title;
-      modalBody.innerHTML = data.html;
-      disadvantageText.textContent = data.disadvantage;
-      
-      disadvantageBox.style.display = "none";
-      if (btnSolveJobBridge) btnSolveJobBridge.style.display = "none";
-      btnAction.textContent = data.actionText;
-      btnAction.style.display = "inline-block";
-      
-      modal.style.display = "grid";
-
-      // Sync active state GPA into Adiga input on load
-      if (sysId === "adiga") {
-        setTimeout(() => {
-          const gpaValInput = document.getElementById("sim-gpa-val");
-          if (gpaValInput) gpaValInput.value = studentState.gpa;
-        }, 10);
-      }
-    });
-  });
-  
-  btnAction?.addEventListener("click", () => {
-    const data = systemSimData[currentSystem];
-    if (data && data.action) {
-      data.action();
-      disadvantageBox.style.display = "block";
-      if (btnSolveJobBridge) btnSolveJobBridge.style.display = "inline-block";
-      btnAction.style.display = "none";
-      showToast("⚠️ 분석 완료. 시스템 한계(단점)가 아래쪽에 표시되었습니다.");
-    }
-  });
-
-  btnSolveJobBridge?.addEventListener("click", () => {
-    if (modal) modal.style.display = "none";
-    const rmTab = document.querySelector('[data-explore-tab="integrated"]');
-    if (rmTab) rmTab.click();
-    setView("explore");
-    showToast("✨ 진로브릿지 통합 설계 엔진으로 이동했습니다. 단점 없는 설계를 시작해보세요!");
-  });
-  
-  const closeModal = () => {
-    if (modal) modal.style.display = "none";
-  };
-  
-  btnCloseSim?.addEventListener("click", closeModal);
-  btnSimClose?.addEventListener("click", closeModal);
+  // 시뮬레이터 모달 제거됨 - 기능이 진로브릿지 내부 탭으로 직접 통합됨
+  // ZEP 모달은 setupActionButtons에서 처리
 }
 
 
 
-function addTodoItem(title) {
+function addTodoItem(title, options = {}) {
+  if (!currentUser) {
+    if (!options.silent) requireAuth("할 일 추가");
+    return;
+  }
+
   const todoLists = document.querySelectorAll(".daily-todo");
   if (todoLists.length === 0) return;
+
+  if (options.unique) {
+    const exists = Array.from(document.querySelectorAll(".daily-todo label")).some((label) => label.textContent.trim() === title);
+    if (exists) return;
+  }
   
   todoLists.forEach(todoList => {
     const label = document.createElement("label");
@@ -2598,7 +3822,9 @@ function addTodoItem(title) {
   });
   
   serializeAndSaveTodos();
-  showToast(`✅ [${title}] 일정을 오늘의 할 일에 추가했습니다!`);
+  if (!options.silent) {
+    showToast(`✅ [${title}] 일정을 오늘의 할 일에 추가했습니다!`);
+  }
 }
 
 
@@ -2630,11 +3856,11 @@ setupCategoryTabs();
 setupRecordForm();
 setupProfileForm();
 setupActionButtons();
-setupInquiryForm();
 setupExplorePortal();
 setupSimulator();
 setupRoadmapDesigner();
 setupAuthListeners();
+setupPasswordToggles();
 
 checkAuth();
 setupMobileBottomNav();
