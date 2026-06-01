@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" fill="none">
+  <rect width="920" height="520" rx="28" fill="#F3F7FF"/>
+  <text x="46" y="58" fill="#10213D" font-family="Pretendard, Arial, sans-serif" font-size="26" font-weight="800">진로브릿지 아이콘 시안 v2</text>
+  <text x="46" y="88" fill="#66758F" font-family="Pretendard, Arial, sans-serif" font-size="15" font-weight="600">배경 선 장식 제거, 1.9px 라인, 네이비 + 블루 포인트로 통일</text>
+
+  <g transform="translate(46 128)">
+    <rect width="828" height="132" rx="22" fill="#FFFFFF" stroke="#D9E6F8"/>
+    <text x="24" y="34" fill="#10213D" font-family="Pretendard, Arial, sans-serif" font-size="17" font-weight="800">사이드바 메뉴 아이콘</text>
+    <g transform="translate(24 58)">
+      <g>
+        <rect width="72" height="54" rx="16" fill="#EAF3FF"/>
+        <image href="home.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">홈</text>
+      </g>
+      <g transform="translate(98 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="profile.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">학생</text>
+      </g>
+      <g transform="translate(196 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="record.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">기록</text>
+      </g>
+      <g transform="translate(294 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="explore.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">탐색</text>
+      </g>
+      <g transform="translate(392 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="career.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">연결</text>
+      </g>
+      <g transform="translate(490 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="portfolio.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">포트폴리오</text>
+      </g>
+      <g transform="translate(588 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="zep.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">ZEP</text>
+      </g>
+      <g transform="translate(686 0)">
+        <rect width="72" height="54" rx="16" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <image href="inquiry.svg" x="24" y="15" width="24" height="24"/>
+        <text x="36" y="78" fill="#253655" font-family="Pretendard, Arial, sans-serif" font-size="13" font-weight="700" text-anchor="middle">문의</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(46 302)">
+    <rect width="828" height="154" rx="22" fill="#FFFFFF" stroke="#D9E6F8"/>
+    <text x="24" y="34" fill="#10213D" font-family="Pretendard, Arial, sans-serif" font-size="17" font-weight="800">홈 상단 버튼 아이콘</text>
+    <g transform="translate(24 58)">
+      <g>
+        <rect width="238" height="72" rx="18" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <rect x="16" y="13" width="46" height="46" rx="14" fill="#EAF3FF"/>
+        <image href="action-start.svg" x="7" y="4" width="64" height="64"/>
+        <text x="78" y="32" fill="#10213D" font-family="Pretendard, Arial, sans-serif" font-size="16" font-weight="800">시작하기</text>
+        <text x="78" y="53" fill="#66758F" font-family="Pretendard, Arial, sans-serif" font-size="12" font-weight="600">활동 기록으로 이동</text>
+      </g>
+      <g transform="translate(272 0)">
+        <rect width="238" height="72" rx="18" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <rect x="16" y="13" width="46" height="46" rx="14" fill="#E5FBF6"/>
+        <image href="action-portfolio.svg" x="7" y="4" width="64" height="64"/>
+        <text x="78" y="32" fill="#10213D" font-family="Pretendard, Arial, sans-serif" font-size="16" font-weight="800">포트폴리오</text>
+        <text x="78" y="53" fill="#66758F" font-family="Pretendard, Arial, sans-serif" font-size="12" font-weight="600">성장 기록 확인</text>
+      </g>
+      <g transform="translate(544 0)">
+        <rect width="238" height="72" rx="18" fill="#FFFFFF" stroke="#D9E6F8"/>
+        <rect x="16" y="13" width="46" height="46" rx="14" fill="#F0EBFF"/>
+        <image href="action-explore.svg" x="7" y="4" width="64" height="64"/>
+        <text x="78" y="32" fill="#10213D" font-family="Pretendard, Arial, sans-serif" font-size="16" font-weight="800">진로 탐색</text>
+        <text x="78" y="53" fill="#66758F" font-family="Pretendard, Arial, sans-serif" font-size="12" font-weight="600">API 검색으로 이동</text>
+      </g>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="520" viewBox="0 0 1180 520" role="img" aria-label="홈 시작하기 ZEP 아이콘 시안">
+  <defs>
+    <style>
+      .bg { fill: #f5f8fc; }
+      .card { fill: #fff; stroke: #dbe8f8; stroke-width: 1.3; }
+      .tile { fill: #f8fbff; stroke: #e4eefb; stroke-width: 1.2; }
+      .title { fill: #101d34; font: 900 26px Pretendard, Arial, sans-serif; }
+      .label { fill: #253655; font: 900 18px Pretendard, Arial, sans-serif; }
+      .desc { fill: #66758f; font: 700 14px Pretendard, Arial, sans-serif; }
+      .base { fill: none; stroke: #244064; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+      .point { fill: none; stroke: #1267f1; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+      .teal { fill: none; stroke: #13aaa5; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+      .fill-blue { fill: #1267f1; }
+      .fill-teal { fill: #13aaa5; }
+      .fill-soft { fill: #eaf3ff; }
+      .shadow { filter: drop-shadow(0 12px 24px rgba(31, 69, 128, .08)); }
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="520"/>
+  <text x="54" y="62" class="title">아이콘 시안</text>
+  <text x="54" y="91" class="desc">디자인은 그대로 두고, 홈 · 시작하기 · ZEP 아이콘만 파란색을 뒤로 뺀 버전</text>
+
+  <g transform="translate(54 130)" class="shadow">
+    <rect class="card" width="330" height="310" rx="24"/>
+    <rect x="40" y="38" width="96" height="96" rx="24" class="tile"/>
+    <path class="base" d="M64 116V86l24-21 24 21v30z"/>
+    <path class="point" d="M79 116V94h18v22"/>
+    <text x="40" y="184" class="label">홈</text>
+    <text x="40" y="216" class="desc">집 모양은 남기고, 파란색은 지붕과 문만</text>
+    <text x="40" y="244" class="desc">선 두께를 다른 메뉴 아이콘과 맞춤</text>
+  </g>
+
+  <g transform="translate(425 130)" class="shadow">
+    <rect class="card" width="330" height="310" rx="24"/>
+    <rect x="40" y="38" width="96" height="96" rx="24" class="tile"/>
+    <circle cx="88" cy="86" r="30" class="fill-soft"/>
+    <path class="base" d="M75 86h26"/>
+    <path class="point" d="M88 73v26"/>
+    <path class="teal" d="M64 116c14 13 34 13 48 0"/>
+    <text x="40" y="184" class="label">시작하기</text>
+    <text x="40" y="216" class="desc">큰 파란 버튼 느낌 대신 시작 표시만 강조</text>
+    <text x="40" y="244" class="desc">플러스와 진행 곡선으로 행동성을 표현</text>
+  </g>
+
+  <g transform="translate(796 130)" class="shadow">
+    <rect class="card" width="330" height="310" rx="24"/>
+    <rect x="40" y="38" width="96" height="96" rx="24" class="tile"/>
+    <path class="base" d="M61 113V82l27-16 27 16v31"/>
+    <path class="point" d="M76 113V91h24v22"/>
+    <path class="teal" d="M73 82h30"/>
+    <circle cx="88" cy="56" r="4" class="fill-blue"/>
+    <text x="40" y="184" class="label">ZEP</text>
+    <text x="40" y="216" class="desc">전시관/공간 느낌을 유지하면서 색을 절제</text>
+    <text x="40" y="244" class="desc">문만 파란색, 공간 라인은 남색 기준</text>
+  </g>
+</svg>

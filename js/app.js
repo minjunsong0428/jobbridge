@@ -176,6 +176,15 @@ function simulateApi(path, options, queryParams) {
     saveMockDB(db);
     return { status: 200, body: { success: true, activities: user.activities } };
   }
+
+  if (path === "/api/activities" && method === "POST") {
+    if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
+    const user = db.users[authUser];
+    if (!user) return { status: 404, body: { error: "사용자를 찾을 수 없습니다." } };
+    user.activities = Array.isArray(body.activities) ? body.activities : [];
+    saveMockDB(db);
+    return { status: 200, body: { success: true, activities: user.activities } };
+  }
   
   if (path === "/api/todo" && method === "POST") {
     if (!authUser) return { status: 401, body: { error: "인증 헤더가 누락되었습니다." } };
@@ -238,6 +247,16 @@ if (isServerless) {
 
 let currentUser = null;
 let activitiesList = [];
+
+function createActivityId() {
+  return `act-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function normalizeActivityRecord(record = {}) {
+  if (!record.id) record.id = createActivityId();
+  if (!record.status) record.status = "완료";
+  return record;
+}
 
 
 async function checkAuth() {
@@ -547,6 +566,7 @@ function setupAuthListeners() {
   // Open login triggers
   document.querySelectorAll(".btn-login-open").forEach(btn => {
     btn.addEventListener("click", () => {
+      if (currentUser) return;
       const authScreen = document.getElementById("auth-screen");
       if (authScreen) authScreen.style.display = "flex";
     });
@@ -678,6 +698,7 @@ function updateAuthUI(isLoggedIn) {
   const btnLogout = document.getElementById("btn-logout-desktop");
   const guestBanner = document.getElementById("guest-alert-banner");
   document.body.classList.toggle("is-guest", !isLoggedIn);
+  document.body.classList.toggle("is-authenticated", Boolean(isLoggedIn));
   document.querySelectorAll("[data-view]").forEach((button) => {
     const locked = protectedViews.has(button.dataset.view) && !isLoggedIn;
     button.classList.toggle("requires-login", locked);
@@ -689,12 +710,28 @@ function updateAuthUI(isLoggedIn) {
   });
   
   if (isLoggedIn) {
-    if (btnLogin) btnLogin.style.display = "none";
-    if (btnLogout) btnLogout.style.display = "inline-block";
+    if (btnLogin) {
+      btnLogin.hidden = true;
+      btnLogin.setAttribute("aria-hidden", "true");
+      btnLogin.style.display = "none";
+    }
+    if (btnLogout) {
+      btnLogout.hidden = false;
+      btnLogout.removeAttribute("aria-hidden");
+      btnLogout.style.display = "inline-flex";
+    }
     if (guestBanner) guestBanner.style.display = "none";
   } else {
-    if (btnLogin) btnLogin.style.display = "inline-block";
-    if (btnLogout) btnLogout.style.display = "none";
+    if (btnLogin) {
+      btnLogin.hidden = false;
+      btnLogin.removeAttribute("aria-hidden");
+      btnLogin.style.display = "inline-flex";
+    }
+    if (btnLogout) {
+      btnLogout.hidden = true;
+      btnLogout.setAttribute("aria-hidden", "true");
+      btnLogout.style.display = "none";
+    }
     if (guestBanner) guestBanner.style.display = "block";
   }
 }
@@ -719,14 +756,11 @@ async function loadStudentData() {
     const storedActivities = localStorage.getItem("guest_activities");
     if (storedActivities) {
       const activities = JSON.parse(storedActivities);
-      activitiesList = activities;
-      activities.forEach(record => {
-        prependSummary(record);
-        prependHistory(record);
-      });
+      activitiesList = activities.map(normalizeActivityRecord);
+      renderActivityLists();
       if (activities.length > 0) {
-        syncSelectedActivity(activities[0]);
-        updatePortfolioFromRecord(activities[0]);
+        syncSelectedActivity(activitiesList[0]);
+        updatePortfolioFromRecord(activitiesList[0]);
       } else {
         renderEmptyHistory();
       }
@@ -834,13 +868,10 @@ async function loadStudentData() {
     if (historyList) historyList.innerHTML = "";
     
     if (data.activities && data.activities.length > 0) {
-      activitiesList = data.activities;
-      data.activities.forEach(record => {
-        prependSummary(record);
-        prependHistory(record);
-      });
-      syncSelectedActivity(data.activities[0]);
-      updatePortfolioFromRecord(data.activities[0]);
+      activitiesList = data.activities.map(normalizeActivityRecord);
+      renderActivityLists();
+      syncSelectedActivity(activitiesList[0]);
+      updatePortfolioFromRecord(activitiesList[0]);
     } else {
       activitiesList = [];
       renderEmptyHistory();
@@ -962,6 +993,26 @@ async function saveActivityToServer(record) {
     return true;
   } catch (err) {
     console.error("Error saving activity", err);
+    return false;
+  }
+}
+
+async function saveActivityListToServer() {
+  if (!currentUser) {
+    return requireAuth("활동 기록 저장");
+  }
+  try {
+    await fetch("/api/activities", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Username": currentUser
+      },
+      body: JSON.stringify({ activities: activitiesList })
+    });
+    return true;
+  } catch (err) {
+    console.error("Error saving activities", err);
     return false;
   }
 }
@@ -1104,6 +1155,7 @@ const labels = {
   portfolio: "포트폴리오",
   explore: "진로 탐색",
   career: "진로 연결",
+  dream: "꿈잇다",
   zep: "ZEP 전시관",
   feedback: "선생님 피드백",
   profile: "학생 정보",
@@ -1455,6 +1507,10 @@ function setView(view) {
     renderNotifications();
   }
 
+  if (view === "explore" && typeof window.jobbridgeRefreshExplore === "function") {
+    window.jobbridgeRefreshExplore();
+  }
+
   const surface = document.querySelector(".main-content-surface");
   if (surface) {
     surface.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1535,13 +1591,32 @@ function renderEmptyHistory() {
   `;
 }
 
+function renderActivityLists(records = activitiesList) {
+  const historyList = document.querySelector(".history-list");
+  const summaryList = document.querySelector(".summary-cards");
+  if (historyList) historyList.innerHTML = "";
+  if (summaryList) summaryList.innerHTML = "";
+
+  if (!records.length) {
+    renderEmptyHistory();
+    return;
+  }
+
+  records.slice().reverse().forEach((record) => {
+    prependHistory(normalizeActivityRecord(record));
+    prependSummary(normalizeActivityRecord(record));
+  });
+}
+
 function prependHistory(record) {
   const list = document.querySelector(".history-list");
   if (!list) return;
 
   list.querySelector(".history-empty")?.remove();
+  normalizeActivityRecord(record);
 
   const li = document.createElement("li");
+  li.dataset.activityId = record.id;
   li.appendChild(createRoundIcon(record.category));
 
   const body = document.createElement("div");
@@ -1551,17 +1626,23 @@ function prependHistory(record) {
   small.textContent = record.date;
   body.append(title, small);
 
-  const status = document.createElement("strong");
-  status.textContent = "완료";
-  li.append(body, status);
+  const actions = document.createElement("div");
+  actions.className = "activity-card-actions";
+  actions.innerHTML = `
+    <button type="button" data-activity-action="edit">수정</button>
+    <button type="button" data-activity-action="delete">삭제</button>
+  `;
+  li.append(body, actions);
   list.prepend(li);
 }
 
 function prependSummary(record) {
   const list = document.querySelector(".summary-cards");
   if (!list) return;
+  normalizeActivityRecord(record);
 
   const li = document.createElement("li");
+  li.dataset.activityId = record.id;
   li.appendChild(createRoundIcon(record.category));
 
   const body = document.createElement("div");
@@ -1573,9 +1654,13 @@ function prependSummary(record) {
   small.textContent = `${record.category} / ${record.career}`;
   body.append(badge, title, small);
 
-  const time = document.createElement("time");
-  time.textContent = record.date;
-  li.append(body, time);
+  const meta = document.createElement("div");
+  meta.className = "summary-meta-actions";
+  meta.innerHTML = `
+    <time>${escapeHtml(record.date)}</time>
+    <button type="button" data-activity-action="delete">삭제</button>
+  `;
+  li.append(body, meta);
   list.prepend(li);
 }
 
@@ -1598,6 +1683,7 @@ function updatePortfolioFromRecord(record) {
 function setupRecordForm() {
   const form = document.querySelector(".record-form");
   if (!form) return;
+  let editingActivityId = null;
 
   // Set up career select options
   const careerSelect = document.getElementById("record-career");
@@ -1618,13 +1704,43 @@ function setupRecordForm() {
   const addFileButton = form.querySelector(".add-file");
   const uploadBox = form.querySelector(".upload-box");
 
-  saveButton?.addEventListener("click", async () => {
+  // 분야(카테고리)별 맞춤 입력 항목 스키마
+  const RECORD_FIELD_SCHEMA = {
+    "독서": [{ k: "도서명", ph: "읽은 책 제목" }, { k: "저자", ph: "지은이" }],
+    "프로젝트": [{ k: "맡은 역할", ph: "예: 기획, 개발, 디자인" }, { k: "사용 도구·기술", ph: "예: Figma, Python" }, { k: "결과물", ph: "산출물 또는 링크" }],
+    "대회": [{ k: "대회명", ph: "참가한 대회 이름" }, { k: "주최", ph: "주최 기관" }, { k: "수상 내역", ph: "예: 최우수상 (없으면 비워두기)" }],
+    "동아리": [{ k: "동아리명", ph: "활동 동아리" }, { k: "직책", ph: "예: 부장, 부원" }],
+    "진로체험": [{ k: "기관/장소", ph: "체험한 곳" }, { k: "체험 직무", ph: "경험한 직무·업무" }],
+    "봉사활동": [{ k: "기관", ph: "봉사 기관" }, { k: "봉사 시간", ph: "예: 8시간" }],
+    "발표": [{ k: "발표 주제", ph: "발표 제목·주제" }, { k: "대상", ph: "예: 학급, 전교생" }],
+    "기타 활동": [{ k: "세부 활동", ph: "활동 유형" }]
+  };
+
+  const renderRecordDynamicFields = (category, values = {}) => {
+    const wrap = document.getElementById("record-dynamic-fields");
+    if (!wrap) return;
+    const fields = RECORD_FIELD_SCHEMA[category] || [];
+    wrap.innerHTML = fields.map((f) => {
+      const v = values && values[f.k] != null ? String(values[f.k]).replace(/"/g, "&quot;") : "";
+      return `<label class="field-row" data-field-icon="content"><span>${escapeHtml(f.k)}</span><input type="text" data-dyn-key="${escapeHtml(f.k)}" placeholder="${escapeHtml(f.ph || "")}" value="${v}" /></label>`;
+    }).join("");
+  };
+
+  const collectDynamicFields = () => {
+    const wrap = document.getElementById("record-dynamic-fields");
+    const out = {};
+    if (wrap) wrap.querySelectorAll("[data-dyn-key]").forEach((i) => {
+      const v = i.value.trim();
+      if (v) out[i.dataset.dynKey] = v;
+    });
+    return out;
+  };
+
+  const collectRecordFromForm = () => {
     const titleInput = document.getElementById("record-title");
     const dateInputEl = document.getElementById("record-date");
     const categorySelect = document.getElementById("record-category");
     const contentTA = document.getElementById("record-content");
-    const roleInput = document.getElementById("record-role");
-    const competencyInput = document.getElementById("record-competency");
     const learnedTA = document.getElementById("record-learned");
     const feelingTA = document.getElementById("record-feeling");
     const difficultyTA = document.getElementById("record-difficulty");
@@ -1634,42 +1750,97 @@ function setupRecordForm() {
 
     const title = titleInput?.value.trim();
     if (!title) {
-      showToast("⚠️ 활동 제목을 입력해 주세요.");
+      showToast("활동 제목을 입력해 주세요.");
       titleInput?.focus();
-      return;
+      return null;
     }
 
-    // Format date from YYYY-MM-DD to YYYY.MM.DD
     const rawDate = dateInputEl?.value || "";
     const date = rawDate ? rawDate.replace(/-/g, ".") : todayText();
     const category = categorySelect?.value || "프로젝트";
     const career = careerSel?.value || "";
     if (!career) {
-      showToast("관련 진로를 먼저 선택해 주세요.");
+      showToast("관련 진로를 선택해 주세요.");
       careerSel?.focus();
-      return;
+      return null;
     }
 
-    const record = {
+    return normalizeActivityRecord({
+      id: editingActivityId || createActivityId(),
       title,
       date,
       category,
       career,
       content: contentTA?.value.trim() || "",
-      role: roleInput?.value.trim() || "",
-      competencies: competencyInput?.value.trim() || "",
+      details: collectDynamicFields(),
       learned: learnedTA?.value.trim() || "",
       feeling: feelingTA?.value.trim() || "",
       difficulty: difficultyTA?.value.trim() || "",
       solution: solutionTA?.value.trim() || "",
       link: linkInput?.value.trim() || "",
-    };
+      status: "완료"
+    });
+  };
 
-    const saved = await saveActivityToServer(record);
-    if (!saved) return;
+  const resetRecordForm = () => {
+    form.reset();
+    editingActivityId = null;
+    if (saveButton) saveButton.textContent = "저장하기";
+    const todayD = new Date();
+    const dateInputEl = document.getElementById("record-date");
+    const categorySelect = document.getElementById("record-category");
+    const careerSel = document.getElementById("record-career");
+    if (dateInputEl) dateInputEl.value = `${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,"0")}-${String(todayD.getDate()).padStart(2,"0")}`;
+    if (categorySelect) categorySelect.selectedIndex = 1;
+    if (careerSel) careerSel.selectedIndex = 0;
+    renderRecordDynamicFields(categorySelect?.value || "프로젝트");
+  };
 
-    prependHistory(record);
-    prependSummary(record);
+  const loadRecordIntoForm = (record) => {
+    editingActivityId = record.id;
+    document.getElementById("record-title").value = record.title || "";
+    document.getElementById("record-date").value = (record.date || "").replace(/\./g, "-");
+    document.getElementById("record-category").value = record.category || "프로젝트";
+    document.getElementById("record-content").value = record.content || "";
+    // 분야별 동적 항목 렌더 + 값 채우기 (구버전 role/competencies도 흡수)
+    const legacy = {};
+    if (record.role) legacy["맡은 역할"] = record.role;
+    if (record.competencies) legacy["사용 도구·기술"] = record.competencies;
+    renderRecordDynamicFields(record.category || "프로젝트", { ...legacy, ...(record.details || {}) });
+    document.getElementById("record-learned").value = record.learned || "";
+    document.getElementById("record-feeling").value = record.feeling || "";
+    document.getElementById("record-difficulty").value = record.difficulty || "";
+    document.getElementById("record-solution").value = record.solution || "";
+    document.getElementById("record-career").value = record.career || "";
+    document.getElementById("record-link").value = record.link || "";
+    if (saveButton) saveButton.textContent = "수정 저장";
+    form.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+
+  // 카테고리 변경 시 분야별 입력 항목 갱신 + 최초 1회 렌더
+  (() => {
+    const categorySelect = document.getElementById("record-category");
+    if (categorySelect) {
+      categorySelect.addEventListener("change", () => renderRecordDynamicFields(categorySelect.value));
+      renderRecordDynamicFields(categorySelect.value);
+    }
+  })();
+
+  saveButton?.addEventListener("click", async () => {
+    const record = collectRecordFromForm();
+    if (!record) return;
+
+    const existingIndex = activitiesList.findIndex((item) => item.id === editingActivityId);
+    if (existingIndex >= 0) {
+      activitiesList[existingIndex] = record;
+      const saved = await saveActivityListToServer();
+      if (!saved) return;
+    } else {
+      const saved = await saveActivityToServer(record);
+      if (!saved) return;
+      activitiesList.unshift(record);
+    }
+    renderActivityLists();
     syncSelectedActivity(record);
     updatePortfolioFromRecord(record);
 
@@ -1678,41 +1849,54 @@ function setupRecordForm() {
       firstTodo.checked = true;
       firstTodo.dispatchEvent(new Event("change"));
     }
-    activitiesList.unshift(record);
-
-    // Reset form after save
-    if (titleInput) titleInput.value = "";
-    if (contentTA) contentTA.value = "";
-    if (roleInput) roleInput.value = "";
-    if (competencyInput) competencyInput.value = "";
-    if (learnedTA) learnedTA.value = "";
-    if (feelingTA) feelingTA.value = "";
-    if (difficultyTA) difficultyTA.value = "";
-    if (solutionTA) solutionTA.value = "";
-    if (linkInput) linkInput.value = "";
-    if (careerSel) careerSel.selectedIndex = 0;
-    if (categorySelect) categorySelect.selectedIndex = 1;
-    const todayD = new Date();
-    if (dateInputEl) dateInputEl.value = `${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,"0")}-${String(todayD.getDate()).padStart(2,"0")}`;
-
-    showToast("✅ 활동 기록이 저장됐어요!");
+    resetRecordForm();
+    showToast(existingIndex >= 0 ? "활동 기록을 수정했어요." : "활동 기록이 저장됐어요.");
   });
 
   cancelButton?.addEventListener("click", () => {
-    form.reset();
-    const todayD = new Date();
-    const dateInputEl = document.getElementById("record-date");
-    if (dateInputEl) dateInputEl.value = `${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,"0")}-${String(todayD.getDate()).padStart(2,"0")}`;
+    resetRecordForm();
     showToast("입력 내용을 비웠어요.");
   });
 
   addFileButton?.addEventListener("click", () => {
-    attachedCount += 1;
-    const thumb = document.createElement("span");
-    thumb.className = attachedCount % 2 === 0 ? "file-thumb photo" : "file-thumb";
-    addFileButton.before(thumb);
-    if (uploadBox) uploadBox.textContent = `${attachedCount}개의 자료가 첨부됐어요`;
-    showToast("첨부 자료 칸을 추가했어요.");
+    if (uploadBox) uploadBox.textContent = "업로드 기능은 이번 범위에서 제외했습니다.";
+    showToast("업로드는 제외하고 기록 저장 기능만 사용합니다.");
+  });
+
+  document.querySelectorAll(".history-list, .summary-cards").forEach((list) => {
+    list.addEventListener("click", async (event) => {
+      const actionButton = event.target.closest("[data-activity-action]");
+      const item = event.target.closest("[data-activity-id]");
+      if (!item) return;
+      const record = activitiesList.find((activity) => activity.id === item.dataset.activityId);
+      if (!record) return;
+
+      if (!actionButton) {
+        syncSelectedActivity(record);
+        setView("career");
+        return;
+      }
+
+      event.stopPropagation();
+      const action = actionButton.dataset.activityAction;
+      if (action === "edit") {
+        setView("record");
+        loadRecordIntoForm(record);
+        return;
+      }
+
+      if (action === "delete") {
+        activitiesList = activitiesList.filter((activity) => activity.id !== record.id);
+        const saved = await saveActivityListToServer();
+        if (!saved) return;
+        renderActivityLists();
+        if (activitiesList[0]) {
+          syncSelectedActivity(activitiesList[0]);
+          updatePortfolioFromRecord(activitiesList[0]);
+        }
+        showToast("활동 기록을 삭제했어요.");
+      }
+    });
   });
 }
 
@@ -2031,9 +2215,26 @@ function setupActionButtons() {
     showToast("피드백 화면에서 도움말을 확인할 수 있어요.");
   });
 
-  document.querySelector(".bell")?.addEventListener("click", () => {
-    setView("notifications");
-    showToast("알림 페이지에서 다음 행동을 확인해요.");
+  const notificationPopover = document.getElementById("notification-popover");
+  const openNotificationPopover = () => {
+    renderNotifications();
+    notificationPopover?.classList.add("is-open");
+    notificationPopover?.setAttribute("aria-hidden", "false");
+  };
+  const closeNotificationPopover = () => {
+    notificationPopover?.classList.remove("is-open");
+    notificationPopover?.setAttribute("aria-hidden", "true");
+  };
+
+  document.querySelector(".bell")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    openNotificationPopover();
+  });
+  document.querySelectorAll("[data-close-notification]").forEach((button) => {
+    button.addEventListener("click", closeNotificationPopover);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeNotificationPopover();
   });
 
   document.getElementById("btn-clear-notifications")?.addEventListener("click", () => {
@@ -2123,6 +2324,7 @@ function setupActionButtons() {
 
   // History list item click → career tab
   document.querySelector(".history-list")?.addEventListener("click", (e) => {
+    if (e.target.closest("[data-activity-action]")) return;
     const li = e.target.closest("li");
     if (!li) return;
     const title = li.querySelector("b")?.textContent;
@@ -2136,6 +2338,7 @@ function setupActionButtons() {
 
   // Summary cards click → career tab
   document.querySelector(".summary-cards")?.addEventListener("click", (e) => {
+    if (e.target.closest("[data-activity-action]")) return;
     const li = e.target.closest("li");
     if (!li) return;
     const title = li.querySelector("b")?.textContent;
@@ -2397,10 +2600,7 @@ const systemSimData = {
         </div>
         <div id="sim-worknet-result" style="display:none; padding:12px; background:#e8f4fd; border-radius:8px; margin-top:12px; font-size:13.5px;">
           <strong>💼 직업 전망 참고 정보:</strong><br>
-          - 평균 연봉: <strong>4,200만원</strong><br>
-          - 일자리 전망: <strong>다소 증가</strong><br>
-          - 현재 채용 중인 공고: <strong>1,482건</strong><br>
-          <span style="color:#d6336c; font-size:12px;">* 본 정보는 중·고교 과목 선택 및 대입 지원 정보와 연동되지 않습니다.</span>
+          실제 외부 API 응답 없이 임금·채용 공고 수를 표시하지 않습니다.
         </div>
       </div>
     `,
@@ -2412,10 +2612,7 @@ const systemSimData = {
         const job = jobInput.value.trim() || "웹 개발자";
         res.innerHTML = `
           <strong>💼 직업 전망 참고 정보 (${job}):</strong><br>
-          - 중위 임금: <strong>연 4,200만원</strong><br>
-          - 향후 10년간 일자리 전망: <strong>증가율 높음</strong><br>
-          - 현재 기업 구인 공고수: <strong>1,482건 등록됨</strong><br>
-          <span style="color:#d6336c; font-size:12px; font-weight:bold;">⚠️ 경고: 이 데이터는 고등학교 학생부 기재 요령이나 학종 전공적합성 세특 설계용 추천 가이드를 전혀 지원하지 않습니다.</span>
+          실제 외부 API 응답 없이 임금·채용 공고 수를 표시하지 않습니다. 직업 정보는 커리어넷 직업 검색 카드에서 확인하세요.
         `;
         res.style.display = "block";
       }
@@ -2429,14 +2626,11 @@ const systemSimData = {
         <p><strong>대학 지표 비교</strong></p>
         <p style="font-size:13px; color:#6b7b95;">조회하고자 하는 대학 학과를 입력해보세요.</p>
         <div style="display:flex; gap:8px; margin: 12px 0;">
-          <input type="text" id="sim-al-query" value="A대학교 컴퓨터공학과" style="flex:1; height:36px; padding:0 10px; border:1px solid #d4e0ef; border-radius:6px;" />
+          <input type="text" id="sim-al-query" value="" placeholder="대학명 또는 학과명" style="flex:1; height:36px; padding:0 10px; border:1px solid #d4e0ef; border-radius:6px;" />
         </div>
         <div id="sim-alimi-result" style="display:none; padding:12px; background:#e8f4fd; border-radius:8px; margin-top:12px; font-size:13.5px;">
           <strong>📊 대학 정보:</strong><br>
-          - 전공 취업률: <strong>78.4%</strong><br>
-          - 학생 1인당 연간 장학금: <strong>3,420,000원</strong><br>
-          - 신입생 충원율: <strong>100%</strong><br>
-          - 등록금 현황: <strong>8,120,000원/연</strong>
+          실제 외부 API 응답 없이 취업률·등록금·경쟁률을 표시하지 않습니다.
         </div>
       </div>
     `,
@@ -2445,14 +2639,10 @@ const systemSimData = {
       const res = document.getElementById("sim-alimi-result");
       const univInput = document.getElementById("sim-al-query");
       if (res && univInput) {
-        const univ = univInput.value.trim() || "A대학교 컴퓨터공학과";
+        const univ = univInput.value.trim() || "입력한 대학/학과";
         res.innerHTML = `
           <strong>📊 대학 정보 (${univ}):</strong><br>
-          - 전공 취업률: <strong>78.4%</strong><br>
-          - 1인당 연평균 장학금액: <strong>3,420,000원</strong><br>
-          - 신입생 수시/정시 경쟁률: <strong>9.2 : 1</strong><br>
-          - 연간 수업료 고액도: <strong>8,120,000원</strong><br>
-          <span style="color:#d6336c; font-size:12.5px;">* 이 지표는 대학의 환경 통계일 뿐, 해당 대학 전공을 준비하기 위한 학생부 활동 조합 가이드는 없습니다.</span>
+          실제 외부 API 응답 없이 취업률·등록금·경쟁률을 표시하지 않습니다. 대학/학과 정보는 커리어넷 학교·학과 검색 결과에서 확인하세요.
         `;
         res.style.display = "block";
       }
@@ -2466,8 +2656,8 @@ function updateLiveAiGuide() {
   const targetSelect = document.getElementById("rm-select-target");
   const checkedActs = Array.from(document.querySelectorAll("#rm-activity-selector input[type='checkbox']:checked")).map(cb => cb.dataset.actTitle);
   
-  const gpaVal = parseFloat(gpaInput?.value) || 2.3;
-  const mockVal = parseInt(mockInput?.value) || 88;
+  const gpaVal = parseFloat(gpaInput?.value) || 0;
+  const mockVal = parseInt(mockInput?.value) || 0;
   const targetVal = targetSelect?.value || "종합";
   const activeCount = checkedActs.length;
   
@@ -2478,78 +2668,20 @@ function updateLiveAiGuide() {
   const aiAdvice = document.getElementById("ai-advice-paragraph");
 
   if (aiGpaStat) {
-    if (gpaVal <= 2.1) {
-      aiGpaStat.textContent = "최상위권 (준비 우수)";
-      aiGpaStat.className = "match-good";
-    } else if (gpaVal <= 2.5) {
-      aiGpaStat.textContent = "보통 (전형 확인)";
-      aiGpaStat.className = "";
-    } else {
-      aiGpaStat.textContent = "도전 필요 (보완 권장)";
-      aiGpaStat.className = "match-warn";
-    }
+    aiGpaStat.textContent = gpaVal ? `${gpaVal.toFixed(1)}등급 입력됨` : "미입력";
+    aiGpaStat.className = "";
   }
 
   if (aiMockStat) {
-    if (mockVal >= 90) {
-      aiMockStat.textContent = `상위 ${100 - mockVal}% (인서울 주요대학)`;
-    } else if (mockVal >= 80) {
-      aiMockStat.textContent = `상위 ${100 - mockVal}% (수도권 대학 가능)`;
-    } else {
-      aiMockStat.textContent = `상위 ${100 - mockVal}% (학종 대비 필요)`;
-    }
+    aiMockStat.textContent = mockVal ? `${mockVal}% 입력됨` : "미입력";
   }
 
   if (aiActivityStat) {
     aiActivityStat.textContent = `${activeCount}개 선택됨`;
   }
 
-  let rating = "미흡 (C)";
-  let advice = "비교과 활동이 선택되지 않았습니다. 종합전형을 준비하려면 아래 활동 목록에서 1개 이상의 전공 관련 활동을 체크하여 연동해 주세요.";
-
-  if (targetVal === "종합") {
-    if (activeCount >= 3) {
-      rating = "최우수 (S)";
-      advice = `학생부종합전형(학종)을 대비하기에 최상의 상태입니다. 선택한 ${activeCount}개의 주도적 활동(예: ${checkedActs[0] || '학교 홈페이지 제작'}) 덕분에 정성적 생기부 지수가 매우 견고합니다. 내신 등급(${gpaVal}등급)을 커버할 수 있는 세특 스토리가 돋보입니다.`;
-    } else if (activeCount >= 2) {
-      rating = "우수 (A)";
-      advice = `학종 대비 활동이 ${activeCount}개로 준수합니다. 독서 기록이나 동아리 활동 1개를 추가 연동하면 전공 관심과 성장 과정 설명이 더 탄탄해집니다.`;
-    } else if (activeCount >= 1) {
-      rating = "보통 (B)";
-      advice = `연동된 비교과 활동이 1개뿐이어서 대입 학종의 정성 평가 요소에서 경쟁력을 확보하기에 다소 부족합니다. 활동 기록 탭에서 전공 분야 활동 기록을 보강할 것을 권장합니다.`;
-    } else {
-      rating = "미흡 (C)";
-      advice = `비교과 활동이 선택되지 않았습니다. 종합전형을 준비하려면 아래 활동 목록에서 1개 이상의 전공 관련 활동을 체크하여 연동해 주세요.`;
-    }
-  } else if (targetVal === "교과") {
-    if (gpaVal <= 1.8) {
-      rating = "최우수 (S)";
-      advice = `학생부교과전형(내신 중심)을 준비하기에 유리한 내신 등급(${gpaVal}등급)입니다. 수능 최저학력기준, 반영 교과, 대학별 전형 변화를 함께 확인하세요.`;
-    } else if (gpaVal <= 2.3) {
-      rating = "우수 (A)";
-      advice = `교과전형을 검토할 수 있는 내신 등급(${gpaVal}등급)입니다. 반영 교과와 학기별 성적 흐름을 확인하고, 학생부종합전형용 활동 기록도 함께 보완하세요.`;
-    } else if (gpaVal <= 3.0) {
-      rating = "보통 (B)";
-      advice = `내신 ${gpaVal}등급은 교과전형 기준 수도권 및 지방 거점 국립대 적정선입니다. 주요 대학 진학을 위해서는 비교과 활동을 보완하여 '학생부종합전형'으로 선회하거나 정시 수능 전형 대비를 강화하는 것을 추천합니다.`;
-    } else {
-      rating = "미흡 (C)";
-      advice = `내신 ${gpaVal}등급으로 학생부교과전형 지원은 불리한 편입니다. 학생부종합전형 지원을 위한 전공적합 세특 보완과 SW 진로 체험 참여가 필요합니다.`;
-    }
-  } else { // targetVal === "수능"
-    if (mockVal >= 90) {
-      rating = "최우수 (S)";
-      advice = `모의고사 백분위 상위 ${100 - mockVal}% (${mockVal}%) 수준입니다. 정시 지원군을 넓게 비교하면서 취약 과목 보완과 실전 관리 계획을 세우는 것이 좋습니다.`;
-    } else if (mockVal >= 80) {
-      rating = "우수 (A)";
-      advice = `모의고사 백분위 ${mockVal}%는 수도권 주요 대학 IT 학과 지원 가능선입니다. 취약 영역(수학 또는 과학탐구)의 4점 문항 2~3개를 극복하면 메이저 대학 지원군으로 도약할 수 있습니다.`;
-    } else if (mockVal >= 60) {
-      rating = "보통 (B)";
-      advice = `백분위 ${mockVal}%는 정시 기준 적정 지원선 확보를 위해 수능 등급의 보강이 절실합니다. 정성적 강점을 살릴 수 있는 학생부종합전형(학종) 원서 접수를 3회 이상 병행하는 포트폴리오 믹스가 유리합니다.`;
-    } else {
-      rating = "미흡 (C)";
-      advice = `모의고사 백분위 ${mockVal}%로 정시 IT 학과 진학은 어렵습니다. 교내 활동을 ZEP 전시관 포트폴리오로 조속히 연계하여 학생부 정성 종합전형으로 역전의 기회를 노려야 합니다.`;
-    }
-  }
+  const rating = activeCount ? `${activeCount}개 활동 기록` : "활동 미연동";
+  const advice = `선택 전형은 ${targetVal}입니다. 입력된 내신·백분위와 활동 수는 저장용으로만 표시하며, 합격 가능성·내신 컷·대학권역은 예측하지 않습니다. 실제 기준은 학교 홈페이지, 모집요강, 커리어넷 API 검색 결과에서 확인하세요.`;
 
   if (aiRatingStat) {
     aiRatingStat.textContent = rating;
@@ -2652,8 +2784,8 @@ function setupRoadmapDesigner() {
         if (resStudentName) resStudentName.textContent = studentState.name || "학생";
         if (resHopeJob) resHopeJob.textContent = studentState.job || "미선택";
         if (resHopeMajor) resHopeMajor.textContent = studentState.major || "미선택";
-        if (resGpa) resGpa.textContent = studentState.gpa.toFixed(1);
-        if (resMock) resMock.textContent = studentState.mock;
+        if (resGpa) resGpa.textContent = studentState.gpa ? studentState.gpa.toFixed(1) : "미입력";
+        if (resMock) resMock.textContent = studentState.mock ? `${studentState.mock}%` : "미입력";
         
         const activeCount = checkedActs.length;
         document.querySelectorAll(".active-count-placeholder").forEach(el => el.textContent = String(activeCount));
@@ -2672,14 +2804,7 @@ function setupRoadmapDesigner() {
         }
         
         const levelEl = document.getElementById("res-q-level");
-        let qLevelText = "보통 (B)";
-        if (activeCount >= 3) {
-          qLevelText = "최우수 (S)";
-        } else if (activeCount >= 2) {
-          qLevelText = "우수 (A)";
-        } else if (activeCount >= 1) {
-          qLevelText = "장려 (B+)";
-        }
+        const qLevelText = activeCount ? `${activeCount}개 활동 연동` : "활동 미연동";
         if (levelEl) levelEl.textContent = qLevelText;
         
         const roadmapData = {
@@ -2783,7 +2908,6 @@ function setupExplorePortal() {
   // --- 1. 커리어넷 API 검색기 ---
   const CAREERNET_API_KEY = "297e4105c3f5f0625592fc8369dc0332";
   const CAREERNET_OPEN_API = "https://www.career.go.kr/cnet/openapi/getOpenApi";
-  const CAREERNET_JOB_API = "https://www.career.go.kr/cnet/front/openapi/jobs.json";
   const careerNetRegionCodes = {
     서울: "100260",
     부산: "100267",
@@ -2814,30 +2938,30 @@ function setupExplorePortal() {
     체육고: "100364",
     자사고: "100365"
   };
-  const careerNetJobCategoryCodes = {
-    IT: "1",
-    보건: "3",
-    교육: "2",
-    사회: "2",
-    경영: "0",
-    공학: "1",
-    문화: "4",
-    서비스: "5",
-    농생명: "9"
-  };
   const careerNetMajorSubjectCodes = {
     IT: "100394",
     보건: "100396",
     교육: "100393",
+    인문사회: "100392",
     사회: "100392",
     경영: "100392",
     공학: "100394",
+    자연과학: "100395",
     문화: "100397",
+    예체능: "100397",
     서비스: "100392",
     농생명: "100395"
   };
   const careerNetSchoolCache = new Map();
   const careerNetDictionaryCache = new Map();
+  const careerNetMajorDetailCache = new Map();
+  const careerNetJobDetailCache = new Map();
+  let highSchoolResults = [];
+  let highSchoolVisibleCount = 24;
+  let universityResults = [];
+  let universityVisibleCount = 20;
+  let careerSearchResults = [];
+  let careerVisibleCount = 24;
 
   function stripApiText(value = "") {
     return String(value || "")
@@ -2856,6 +2980,31 @@ function setupExplorePortal() {
     return toArray(data?.dataSearch?.content);
   }
 
+  function getNestedContent(value) {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.content)) return value.content;
+    if (value?.content && typeof value.content === "object") return [value.content];
+    if (value && typeof value === "object") return [value];
+    return [];
+  }
+
+  function firstText(...values) {
+    return values.map(stripApiText).find(Boolean) || "";
+  }
+
+  function compactList(value, limit = 8) {
+    return stripApiText(value)
+      .split(/[,/]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, limit);
+  }
+
+  function formatListChips(items, emptyText = "상세 보기") {
+    if (!items?.length) return `<span class="info-chip muted-chip">${escapeHtml(emptyText)}</span>`;
+    return items.map((item) => `<span class="info-chip">${escapeHtml(item)}</span>`).join("");
+  }
+
   function safeExternalUrl(value = "") {
     const raw = String(value || "").trim();
     if (!raw || raw === "null") return "";
@@ -2865,6 +3014,98 @@ function setupExplorePortal() {
     } catch {
       return "";
     }
+  }
+
+  function ensureCareerDetailModal() {
+    let modal = document.getElementById("career-detail-modal");
+    if (modal) return modal;
+
+    modal = document.createElement("div");
+    modal.id = "career-detail-modal";
+    modal.className = "career-detail-modal";
+    modal.setAttribute("aria-hidden", "true");
+    modal.innerHTML = `
+      <div class="career-detail-backdrop" data-close-detail></div>
+      <section class="career-detail-panel" role="dialog" aria-modal="true" aria-labelledby="career-detail-title">
+        <button type="button" class="career-detail-close" data-close-detail aria-label="상세 정보 닫기">×</button>
+        <div class="career-detail-head">
+          <span class="career-detail-badge" id="career-detail-badge">상세 정보</span>
+          <h3 id="career-detail-title">상세 정보</h3>
+          <p id="career-detail-subtitle"></p>
+        </div>
+        <div class="career-detail-body" id="career-detail-body"></div>
+        <div class="career-detail-actions" id="career-detail-actions"></div>
+      </section>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close-detail]")) closeCareerDetailModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("is-open")) closeCareerDetailModal();
+    });
+    return modal;
+  }
+
+  function closeCareerDetailModal() {
+    const modal = document.getElementById("career-detail-modal");
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function renderDetailRows(rows = []) {
+    const visibleRows = rows.filter(([, value]) => stripApiText(value));
+    if (!visibleRows.length) {
+      return `<div class="career-detail-row"><dt>확인 항목</dt><dd>상세 버튼과 홈페이지에서 이어서 확인할 수 있습니다.</dd></div>`;
+    }
+    return visibleRows.map(([label, value]) => `
+      <div class="career-detail-row">
+        <dt>${escapeHtml(label)}</dt>
+        <dd>${escapeHtml(stripApiText(value))}</dd>
+      </div>
+    `).join("");
+  }
+
+  function renderDetailChips(items = [], emptyText = "상세 보기") {
+    const list = Array.isArray(items) ? items.filter(Boolean) : compactList(items, 20);
+    if (!list.length) return `<span class="info-chip muted-chip">${escapeHtml(emptyText)}</span>`;
+    return list.map((item) => `<span class="info-chip">${escapeHtml(stripApiText(item))}</span>`).join("");
+  }
+
+  function showDetailLoading(title, subtitle = "커리어넷 API에서 실제 정보를 불러오는 중입니다.") {
+    openCareerDetailModal({
+      badge: "불러오는 중",
+      title,
+      subtitle,
+      sections: [
+        {
+          title: "API 조회",
+          html: `<div class="career-detail-loading"><div class="spinner"></div><p>데이터를 확인하고 있습니다.</p></div>`
+        }
+      ],
+      actions: [{ label: "닫기", className: "outline" }]
+    });
+  }
+
+  function openCareerDetailModal({ badge, title, subtitle, sections = [], actions = [], note = "" }) {
+    const modal = ensureCareerDetailModal();
+    modal.querySelector("#career-detail-badge").textContent = badge || "상세 정보";
+    modal.querySelector("#career-detail-title").textContent = title || "상세 정보";
+    modal.querySelector("#career-detail-subtitle").textContent = subtitle || "커리어넷 API에서 제공한 실제 정보만 표시합니다.";
+    modal.querySelector("#career-detail-body").innerHTML = sections.map((section) => `
+      <section class="career-detail-section">
+        <h4>${escapeHtml(section.title)}</h4>
+        ${section.html}
+      </section>
+    `).join("") + (note ? `<p class="career-detail-note">${escapeHtml(note)}</p>` : "");
+    modal.querySelector("#career-detail-actions").innerHTML = actions.map((action) => (
+      action.href
+        ? `<a class="${action.className || "cn-link"}" href="${action.href}" target="_blank" rel="noopener">${escapeHtml(action.label)}</a>`
+        : `<button type="button" class="${action.className || "outline"}" data-close-detail>${escapeHtml(action.label)}</button>`
+    )).join("");
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
   }
 
   function normalizeRegionName(region = "") {
@@ -2932,6 +3173,7 @@ function setupExplorePortal() {
     const rawType = item.schoolType || item.schoolGubun || "고등학교";
     const address = stripApiText(item.adres || item.address || "");
     const campus = stripApiText(item.campusName || "");
+    const admissionInfo = firstText(item.admissionInfo, item.enterInfo, item.entranceInfo, item.recruitInfo, item.selectionInfo);
     return {
       name,
       region: normalizeRegionName(rawRegion),
@@ -2943,8 +3185,13 @@ function setupExplorePortal() {
       schoolGubun: stripApiText(item.schoolGubun || ""),
       address,
       campus,
+      phone: firstText(item.tel, item.schoolTel, item.phone),
+      fax: firstText(item.fax, item.schoolFax),
+      schoolCode: firstText(item.schoolCode, item.schoolCd, item.seq),
+      neisCode: firstText(item.neisCode, item.neisCd),
+      admissionInfo,
       desc: [rawRegion, item.estType, rawType].filter(Boolean).join(" · "),
-      link: safeExternalUrl(item.link)
+      link: safeExternalUrl(firstText(item.link, item.homepage, item.homepageUrl, item.schoolUrl, item.hpAddr))
     };
   }
 
@@ -3007,6 +3254,107 @@ function setupExplorePortal() {
     `;
   }
 
+  function renderHighSchoolResults(listEl, filtered, totalCount) {
+    highSchoolResults = filtered;
+    listEl.innerHTML = "";
+    const visible = filtered.slice(0, highSchoolVisibleCount);
+    visible.forEach((school) => {
+      const isInterest = school.tracks.some((item) => (studentState.interests || []).join(" ").includes(item));
+      const card = document.createElement("article");
+      card.className = "hs-school-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `${school.name} 상세 정보 보기`);
+      card.innerHTML = `
+        <div class="hs-card-top">
+          <div class="hs-tag-row">
+            <span class="hs-tag ${school.type}">${escapeHtml(school.type)}</span>
+            <span class="hs-tag neutral">${escapeHtml(school.region)}</span>
+            ${school.tracks.map((item) => `<span class="hs-tag track">${escapeHtml(item)}</span>`).join("")}
+          </div>
+          <span class="match-pill info">커리어넷</span>
+        </div>
+        <h4>${escapeHtml(school.name)}${isInterest ? " <small>관심 분야</small>" : ""}</h4>
+        <p class="hs-desc">${escapeHtml(school.desc || "커리어넷 학교정보 API에서 제공한 학교 정보입니다.")}</p>
+        <dl class="hs-detail-list">
+          ${school.schoolGubun || school.schoolType || school.type ? `<div><dt>학교 종류</dt><dd>${escapeHtml(school.schoolGubun || school.schoolType || school.type)}</dd></div>` : ""}
+          ${school.admissionInfo ? `<div><dt>입학 자료</dt><dd>${escapeHtml(school.admissionInfo)}</dd></div>` : ""}
+          ${!school.admissionInfo && school.link ? `<div><dt>입학 자료</dt><dd>학교 홈페이지 모집요강 확인</dd></div>` : ""}
+          ${school.address ? `<div><dt>주소</dt><dd>${escapeHtml(school.address)}</dd></div>` : ""}
+          ${school.estType || school.campus ? `<div><dt>설립</dt><dd>${escapeHtml([school.estType, school.campus].filter(Boolean).join(" · "))}</dd></div>` : ""}
+          ${school.phone ? `<div><dt>연락처</dt><dd>${escapeHtml(school.phone)}</dd></div>` : ""}
+        </dl>
+        <div class="card-action-row">
+          <button type="button" class="outline btn-card-detail">자세히 보기</button>
+          ${school.link ? `<a class="hs-link" href="${school.link}" target="_blank" rel="noopener">학교 홈페이지</a>` : ""}
+        </div>
+      `;
+      const openSchoolDetail = () => openCareerDetailModal({
+        badge: "학교정보 API",
+        title: school.name,
+        subtitle: "커리어넷 학교정보 API에서 제공한 실제 학교 정보입니다.",
+        sections: [
+          {
+            title: "기본 정보",
+            html: `<dl class="career-detail-grid">${renderDetailRows([
+              ["지역", school.rawRegion || school.region],
+              ["학교 종류", school.schoolGubun || school.schoolType || school.type],
+              ["설립", school.estType],
+              ["캠퍼스", school.campus],
+              ["학교 코드", school.schoolCode],
+              ["NEIS 코드", school.neisCode],
+              ["입학 자료", school.admissionInfo]
+            ])}</dl>`
+          },
+          {
+            title: "연락 및 위치",
+            html: `<dl class="career-detail-grid">${renderDetailRows([
+              ["주소", school.address],
+              ["전화", school.phone],
+              ["팩스", school.fax]
+            ])}</dl>`
+          },
+          {
+            title: "계열 태그",
+            html: `<div class="info-chip-wrap">${renderDetailChips(school.tracks, "학교 상세 보기")}</div>`
+          }
+        ],
+        actions: [
+          ...(school.link ? [{ label: "학교 홈페이지 열기", href: school.link, className: "cn-link" }] : []),
+          { label: "닫기", className: "outline" }
+        ]
+      });
+      card.querySelector(".btn-card-detail")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openSchoolDetail();
+      });
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("a, button")) return;
+        openSchoolDetail();
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openSchoolDetail();
+        }
+      });
+      listEl.appendChild(card);
+    });
+
+    if (filtered.length > visible.length) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "load-more-btn";
+      more.style.gridColumn = "1 / -1";
+      more.textContent = `더 보기 (${visible.length}/${filtered.length})`;
+      more.addEventListener("click", () => {
+        highSchoolVisibleCount += 24;
+        renderHighSchoolResults(listEl, highSchoolResults, totalCount);
+      });
+      listEl.appendChild(more);
+    }
+  }
+
   const hsSearchInput = document.getElementById("hs-search-input");
   const hsRegionFilter = document.getElementById("hs-region-filter");
   const hsFilter = document.getElementById("hs-type-filter");
@@ -3018,6 +3366,7 @@ function setupExplorePortal() {
 
   const matchHighSchools = async () => {
     const requestId = ++hsSearchRequestId;
+    highSchoolVisibleCount = 24;
     const rawKeyword = (hsSearchInput?.value || "").trim();
     const keyword = normalizeCareerText(rawKeyword);
     const region = hsRegionFilter ? hsRegionFilter.value : "all";
@@ -3067,8 +3416,8 @@ function setupExplorePortal() {
     });
 
     if (hsStatus) {
-        const renderedCount = Math.min(filtered.length, 120);
-        hsStatus.textContent = `커리어넷 학교정보 API 기준 ${totalCount.toLocaleString("ko-KR")}곳 중 조건에 맞는 ${filtered.length.toLocaleString("ko-KR")}곳을 찾았습니다. 화면에는 ${renderedCount.toLocaleString("ko-KR")}곳까지 표시됩니다.`;
+        const renderedCount = Math.min(filtered.length, highSchoolVisibleCount);
+        hsStatus.textContent = `커리어넷 학교정보 API 기준 ${totalCount.toLocaleString("ko-KR")}곳 중 조건에 맞는 ${filtered.length.toLocaleString("ko-KR")}곳을 찾았습니다. 현재 ${renderedCount.toLocaleString("ko-KR")}곳 표시 중입니다.`;
     }
 
     if (filtered.length === 0) {
@@ -3081,31 +3430,7 @@ function setupExplorePortal() {
       return;
     }
 
-      listEl.innerHTML = "";
-      filtered.slice(0, 120).forEach((school) => {
-      const isInterest = school.tracks.some((item) => (studentState.interests || []).join(" ").includes(item));
-      const card = document.createElement("article");
-      card.className = "hs-school-card";
-      card.innerHTML = `
-        <div class="hs-card-top">
-          <div class="hs-tag-row">
-            <span class="hs-tag ${school.type}">${school.type}</span>
-            <span class="hs-tag neutral">${school.region}</span>
-            ${school.tracks.map((item) => `<span class="hs-tag track">${item}</span>`).join("")}
-          </div>
-          <span class="match-pill info">입시 정보</span>
-        </div>
-        <h4>${escapeHtml(school.name)}${isInterest ? " <small>관심 분야 추천</small>" : ""}</h4>
-        <p class="hs-desc">${escapeHtml(school.desc || "커리어넷 학교정보 API에서 제공한 학교 정보입니다.")}</p>
-        <dl class="hs-detail-list">
-          <div><dt>학교 종류</dt><dd>${escapeHtml(school.schoolGubun || school.schoolType || school.type)}</dd></div>
-          <div><dt>주소</dt><dd>${escapeHtml(school.address || "주소 정보 없음")}</dd></div>
-          <div><dt>설립</dt><dd>${escapeHtml(school.estType || "설립 정보 없음")}${school.campus ? ` · ${escapeHtml(school.campus)}` : ""}</dd></div>
-        </dl>
-        ${school.link ? `<a class="hs-link" href="${school.link}" target="_blank" rel="noopener">학교 홈페이지 열기</a>` : `<div class="hs-spec">커리어넷에 학교 홈페이지 링크가 등록되어 있지 않습니다.</div>`}
-      `;
-      listEl.appendChild(card);
-    });
+      renderHighSchoolResults(listEl, filtered, totalCount);
     } catch (error) {
       console.error(error);
       if (requestId !== hsSearchRequestId) return;
@@ -3115,7 +3440,7 @@ function setupExplorePortal() {
       listEl.innerHTML = `
         <article class="hs-school-card" style="grid-column: 1 / -1;">
           <h4>API 연결 필요</h4>
-          <p class="hs-desc">고등학교 목록은 내장 데이터 없이 커리어넷 학교정보 API에서만 불러옵니다. 네트워크 또는 브라우저 보안 정책 때문에 요청이 막히면 결과를 표시하지 않습니다.</p>
+          <p class="hs-desc">커리어넷 학교정보 API 연결을 확인해 주세요.</p>
         </article>
       `;
     }
@@ -3140,18 +3465,561 @@ function setupExplorePortal() {
 
   const syncUniversityTabGrades = () => {};
 
+  function mapMajorForDisplay(item = {}) {
+    return {
+      name: firstText(item.major, item.mClass, item.majorNm, item.facilName, item.MAJOR_NM),
+      category: firstText(item.lClass, item.category),
+      summary: firstText(item.summary, item.purpose, item.interest),
+      departments: compactList(firstText(item.department, item.facilName), 10),
+      jobs: compactList(item.relatedjob || item.jobNames || item.jobs, 8),
+      employment: firstText(item.employment, item.employment_rate),
+      salary: firstText(item.salary, item.avg_salary),
+      seq: firstText(item.majorSeq, item.MAJOR_SEQ, item.SEQ)
+    };
+  }
+
+  function findDetailValue(source = {}, patterns = []) {
+    const seen = new Set();
+    const matches = [];
+    const visit = (value, keyPath = "") => {
+      if (value == null || seen.has(value)) return;
+      if (typeof value === "object") seen.add(value);
+      if (Array.isArray(value)) {
+        value.forEach((item, index) => visit(item, `${keyPath}.${index}`));
+        return;
+      }
+      if (typeof value === "object") {
+        Object.entries(value).forEach(([key, child]) => visit(child, keyPath ? `${keyPath}.${key}` : key));
+        return;
+      }
+      const text = stripApiText(value);
+      if (!text || text.length < 2) return;
+      const keyText = normalizeCareerText(keyPath);
+      if (patterns.some((pattern) => keyText.includes(normalizeCareerText(pattern)))) {
+        matches.push(text);
+      }
+    };
+    visit(source);
+    return Array.from(new Set(matches)).sort((a, b) => b.length - a.length)[0] || "";
+  }
+
+  function renderLongTextBlock(text) {
+    const clean = stripApiText(text);
+    if (!clean) return "";
+    const parts = clean
+      .split(/\s*(?=(?:공통과목|일반선택과목|진로선택과목|전문교과Ⅰ|전문교과Ⅱ|일반 선택|진로 선택|융합 선택|기업 및 산업체|정부 및 공공기관|관련 직업|관련 자격|대학 주요 교과목)\b)/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (parts.length <= 1) {
+      return `<p class="career-detail-text">${escapeHtml(clean)}</p>`;
+    }
+    return `<div class="career-detail-long-list">${parts.map((part) => `<p>${escapeHtml(part)}</p>`).join("")}</div>`;
+  }
+
+  // {이름키, 설명키} 형태의 객체 배열을 정의형 목록으로 렌더 (교과목/활동/진출분야)
+  function renderNamedList(arr, nameKey, descKey) {
+    const items = toArray(arr)
+      .map((o) => ({ name: stripApiText(o && o[nameKey]), desc: stripApiText(o && o[descKey]) }))
+      .filter((o) => o.name || o.desc);
+    if (!items.length) return "";
+    return `<ul class="career-detail-deflist">${items.map((o) => (
+      `<li>${o.name ? `<b>${escapeHtml(o.name)}</b>` : ""}${o.desc ? `<span>${escapeHtml(o.desc)}</span>` : ""}</li>`
+    )).join("")}</ul>`;
+  }
+
+  function buildMajorDetailSections(item = {}, detail = {}) {
+    const sections = [];
+    const push = (title, html) => { if (html) sections.push({ title, html }); };
+    const chips = (value) => {
+      const has = Array.isArray(value) ? value.length : stripApiText(value);
+      return has ? `<div class="info-chip-wrap">${renderDetailChips(value)}</div>` : "";
+    };
+
+    push("학과 개요", renderBulletText(stripApiText(detail.summary) || item.summary));
+    push("학과 특성", renderBulletText(detail.property));
+    push("흥미와 적성", renderBulletText(detail.interest));
+    push("관련 직업", chips(detail.job || item.jobs));
+    push("관련 자격", chips(detail.qualifications || item.qualification));
+    push("관련 고교 교과목", renderNamedList(detail.relate_subject, "subject_name", "subject_description"));
+    push("대학 주요 교과목", renderNamedList(detail.main_subject, "SBJECT_NM", "SBJECT_SUMRY"));
+    push("진로 탐색 활동", renderNamedList(detail.career_act, "act_name", "act_description"));
+    push("졸업 후 진출 분야", renderNamedList(detail.enter_field, "gradeuate", "description"));
+    push("개설 세부 학과", chips(detail.department || item.department));
+
+    const employment = stripApiText(detail.employment);
+    const salary = stripApiText(detail.salary);
+    const rows = [
+      ["취업률", employment],
+      ["졸업 후 평균 연봉", salary ? `${salary}만원` : ""],
+      ["계열", item.category],
+      ["학과 코드", item.seq]
+    ];
+    if (rows.some(([, v]) => stripApiText(v))) {
+      push("취업 및 분류", `<dl class="career-detail-grid">${renderDetailRows(rows)}</dl>`);
+    }
+
+    const univs = extractUniversitiesFromMajorDetail(detail)
+      .map((u) => stripApiText(u.name))
+      .filter(Boolean);
+    if (univs.length) push("개설 대학", chips([...new Set(univs)].slice(0, 40)));
+
+    if (sections.length) return sections;
+    return [
+      {
+        title: "학과 정보",
+        html: `<dl class="career-detail-grid">${renderDetailRows([
+          ["계열", item.category],
+          ["관련직업", item.jobs],
+          ["개설 정보", item.department],
+          ["학과 코드", item.seq]
+        ])}</dl>`
+      }
+    ];
+  }
+
+  // "- 항목\r\n- 항목" 형태의 멀티라인 텍스트를 불릿 목록으로 렌더
+  function renderBulletText(text) {
+    // 줄바꿈을 보존하기 위해 stripApiText 대신 태그만 제거하고 줄 단위로 정리
+    const raw = String(text || "").replace(/<[^>]*>/g, " ");
+    const lines = raw
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^[\s\-•·]+/, "").replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+    if (!lines.length) return "";
+    if (lines.length === 1) return `<p class="career-detail-text">${escapeHtml(lines[0])}</p>`;
+    return `<ul class="career-detail-bullets">${lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`;
+  }
+
+  // 객체 배열에서 특정 key를 가진 첫 값을 반환 (stateofemp/prepareway 구조용)
+  function pickFromObjectArray(arr, key) {
+    if (!Array.isArray(arr)) return "";
+    for (const obj of arr) {
+      if (obj && obj[key] != null && String(obj[key]).trim() !== "") return obj[key];
+    }
+    return "";
+  }
+
+  // capacity_major[].major[].MAJOR_NM 에서 관련 학과명 추출
+  function extractJobMajors(detail = {}) {
+    const out = [];
+    const cm = detail.capacity_major;
+    if (Array.isArray(cm)) {
+      cm.forEach((obj) => {
+        if (obj && Array.isArray(obj.major)) {
+          obj.major.forEach((m) => {
+            const nm = stripApiText(m && (m.MAJOR_NM || m.major_nm || m.name));
+            if (nm) out.push(nm);
+          });
+        }
+      });
+    }
+    return [...new Set(out)];
+  }
+
+  async function fetchCareerNetJobDetail(seq) {
+    if (!seq) return null;
+    if (careerNetJobDetailCache.has(seq)) return careerNetJobDetailCache.get(seq);
+    const params = new URLSearchParams({
+      apiKey: CAREERNET_API_KEY,
+      svcType: "api",
+      svcCode: "JOB_VIEW",
+      contentType: "json",
+      jobdicSeq: String(seq)
+    });
+    const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
+    if (!response.ok) throw new Error("커리어넷 직업상세 API 응답 실패");
+    const data = await response.json();
+    const detail = getCareerNetContent(data)[0] || {};
+    careerNetJobDetailCache.set(seq, detail);
+    return detail;
+  }
+
+  // 관련 기관(contact) 추출
+  function extractJobContacts(detail = {}) {
+    return toArray(detail.contact)
+      .map((c) => ({ name: stripApiText(c && (c.MAPNG_NM || c.name)), url: (c && (c.MAPNG_URL || c.url)) || "" }))
+      .filter((c) => c.name);
+  }
+
+  // 관련 기관 링크 칩
+  function renderContactLinks(contacts = []) {
+    if (!contacts.length) return "";
+    return `<div class="info-chip-wrap">${contacts.map((c) => {
+      const url = safeExternalUrl(c.url);
+      return url
+        ? `<a class="info-chip info-chip-link" href="${url}" target="_blank" rel="noopener">${escapeHtml(c.name)} ↗</a>`
+        : `<span class="info-chip">${escapeHtml(c.name)}</span>`;
+    }).join("")}</div>`;
+  }
+
+  // 직업 만족도(job_possibility.chart_item_list) 막대 그래프
+  function renderJobSatisfactionChart(items = []) {
+    const rows = toArray(items)
+      .map((it) => ({ key: stripApiText(it && it.chart_key), value: Math.max(0, Math.min(100, Number(it && it.chart_value) || 0)) }))
+      .filter((it) => it.key);
+    if (!rows.length) return "";
+    return `<div class="career-detail-bars">${rows.map((r) => `
+      <div class="career-bar-row">
+        <span class="career-bar-label">${escapeHtml(r.key)}</span>
+        <span class="career-bar-track"><span class="career-bar-fill" style="width:${r.value}%"></span></span>
+        <span class="career-bar-val">${r.value}</span>
+      </div>`).join("")}</div>`;
+  }
+
+  function buildJobDetailSections(item = {}, detail = {}) {
+    const sections = [];
+    const push = (title, html) => { if (html) sections.push({ title, html }); };
+
+    const work = stripApiText(detail.summary) || stripApiText(item.summary);
+    if (work) push("하는 일", renderBulletText(work));
+
+    const ability = stripApiText(detail.ability);
+    if (ability) push("핵심 능력", `<div class="info-chip-wrap">${renderDetailChips(ability)}</div>`);
+
+    const aptitude = stripApiText(detail.aptitude);
+    if (aptitude) push("적성 및 흥미", renderBulletText(aptitude));
+
+    const relJob = stripApiText(item.related) || stripApiText(detail.similarJob);
+    if (relJob) push("관련 직업", `<div class="info-chip-wrap">${renderDetailChips(relJob)}</div>`);
+
+    const majors = extractJobMajors(detail);
+    if (majors.length) push("관련 학과", `<div class="info-chip-wrap">${renderDetailChips(majors)}</div>`);
+
+    const cert = stripApiText(pickFromObjectArray(detail.prepareway, "certification"));
+    if (cert) push("관련 자격", renderBulletText(cert));
+
+    const preparation = stripApiText(pickFromObjectArray(detail.prepareway, "preparation"));
+    if (preparation) push("준비 방법", renderBulletText(preparation));
+
+    const training = stripApiText(pickFromObjectArray(detail.prepareway, "training"));
+    if (training) push("직업 훈련", renderBulletText(training));
+
+    const empway = stripApiText(pickFromObjectArray(detail.stateofemp, "empway"));
+    if (empway) push("진출 방법", renderBulletText(empway));
+
+    const employment = stripApiText(pickFromObjectArray(detail.stateofemp, "employment"));
+    if (employment) push("고용 전망", renderBulletText(employment));
+
+    const possibility = Array.isArray(detail.job_possibility) ? detail.job_possibility[0] || {} : {};
+    if (stripApiText(possibility.possibility)) push("발전 가능성", renderBulletText(possibility.possibility));
+    const chart = renderJobSatisfactionChart(possibility.chart_item_list);
+    if (chart) push("직업 만족도", chart);
+
+    const contacts = extractJobContacts(detail);
+    if (contacts.length) push("관련 기관", renderContactLinks(contacts));
+
+    const salery = stripApiText(pickFromObjectArray(detail.stateofemp, "salery"));
+    const div = Array.isArray(detail.division) ? detail.division[0] || {} : {};
+    const classRows = [
+      ["평균 연봉", item.wage],
+      ["임금 정보", salery],
+      ["표준직업분류", div.std_code_nm],
+      ["고용직업분류", div.emplym_code_nm],
+      ["직업 구분", div.cnet_job_dvs || item.category]
+    ];
+    if (classRows.some(([, v]) => stripApiText(v))) {
+      push("분류 및 연봉", `<dl class="career-detail-grid">${renderDetailRows(classRows)}</dl>`);
+    }
+
+    if (sections.length) return sections;
+    return [{
+      title: "직업 정보",
+      html: `<dl class="career-detail-grid">${renderDetailRows([
+        ["직업분류", item.category || item.field],
+        ["평균 연봉", item.wage],
+        ["관련직업", item.related]
+      ])}</dl>`
+    }];
+  }
+
+  async function fetchCareerNetMajorDetail(seq) {
+    if (!seq) return null;
+    if (careerNetMajorDetailCache.has(seq)) return careerNetMajorDetailCache.get(seq);
+    const params = new URLSearchParams({
+      apiKey: CAREERNET_API_KEY,
+      svcType: "api",
+      svcCode: "MAJOR_VIEW",
+      contentType: "json",
+      gubun: "univ_list",
+      majorSeq: String(seq),
+      seq: String(seq)
+    });
+    const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
+    if (!response.ok) throw new Error("커리어넷 학과상세 API 응답 실패");
+    const data = await response.json();
+    const detail = getCareerNetContent(data)[0] || {};
+    careerNetMajorDetailCache.set(seq, detail);
+    return detail;
+  }
+
+  function extractUniversitiesFromMajorDetail(detail = {}) {
+    const direct = getNestedContent(detail.university || detail.univ || detail.school || detail.universityList || detail.schoolList);
+    const recursive = [];
+    const visit = (value) => {
+      if (!value || typeof value !== "object") return;
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      const name = firstText(value.schoolName, value.univName, value.universityName, value.name, value.schulNm);
+      if (name && /대학|대학교|캠퍼스/.test(name)) recursive.push(value);
+      Object.values(value).forEach(visit);
+    };
+    visit(detail);
+    return [...direct, ...recursive]
+      .map((item) => ({
+        name: firstText(item.schoolName, item.univName, item.universityName, item.name, item.schulNm),
+        region: firstText(item.area, item.region, item.adres),
+        department: firstText(item.majorName, item.department, item.facilName),
+        campus: firstText(item.campusName, item.campus),
+        link: safeExternalUrl(firstText(item.link, item.homepage, item.url))
+      }))
+      .filter((item, index, array) => item.name && array.findIndex((other) => `${other.name}-${other.department}` === `${item.name}-${item.department}`) === index);
+  }
+
+  async function fetchUniversityMajorsFromCareerNet(univ, field = "all", onProgress) {
+    const normalizedName = normalizeCareerText(univ.name.replace(/대학교|대학|캠퍼스/g, ""));
+    const { items: majors } = await fetchCareerNetMajorList({ query: "", field, perPage: 100, maxPages: 30 });
+    const matched = [];
+    const seen = new Set();
+
+    for (let index = 0; index < majors.length; index += 6) {
+      const chunk = majors.slice(index, index + 6);
+      const details = await Promise.all(chunk.map((major) => fetchCareerNetMajorDetail(major.seq).catch(() => null)));
+      details.forEach((detail, detailIndex) => {
+        if (!detail) return;
+        const major = chunk[detailIndex];
+        extractUniversitiesFromMajorDetail(detail).forEach((school) => {
+          const schoolText = normalizeCareerText(school.name.replace(/대학교|대학|캠퍼스/g, ""));
+          const isMatch = schoolText.includes(normalizedName) || normalizedName.includes(schoolText);
+          if (!isMatch) return;
+          const key = `${major.seq}-${school.name}-${school.department}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          matched.push({
+            name: major.name,
+            category: major.category,
+            summary: major.summary,
+            jobs: major.jobs,
+            employment: major.employment,
+            salary: major.salary,
+            seq: major.seq,
+            university: school
+          });
+        });
+      });
+      if (onProgress) onProgress(Math.min(index + chunk.length, majors.length), majors.length, matched.length);
+    }
+
+    return matched.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+  }
+
+  async function fetchCareerNetMajorList({ query, field, perPage = 100, maxPages = 8 }) {
+    const cacheKey = JSON.stringify({ type: "majorList", query, field, perPage, maxPages });
+    if (careerNetDictionaryCache.has(cacheKey)) return careerNetDictionaryCache.get(cacheKey);
+    const baseParams = {
+      apiKey: CAREERNET_API_KEY,
+      svcType: "api",
+      svcCode: "MAJOR",
+      contentType: "json",
+      gubun: "univ_list",
+      perPage: String(perPage)
+    };
+    if (query) baseParams.searchTitle = query;
+    if (field !== "all" && careerNetMajorSubjectCodes[field]) baseParams.subject = careerNetMajorSubjectCodes[field];
+    const rawItems = [];
+    let totalCount = 0;
+    for (let page = 1; page <= maxPages; page++) {
+      const params = new URLSearchParams({ ...baseParams, thisPage: String(page) });
+      const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
+      if (!response.ok) throw new Error("커리어넷 학과정보 API 응답 실패");
+      const data = await response.json();
+      const list = getCareerNetContent(data);
+      if (!list.length) break;
+      totalCount = Number(list[0]?.totalCount || data?.dataSearch?.totalCount || totalCount || list.length);
+      rawItems.push(...list);
+      if (rawItems.length >= totalCount) break;
+    }
+    const items = rawItems.map(mapMajorForDisplay).filter((major) => {
+      if (!major.name) return false;
+      if (field === "all") return true;
+      return matchesCareerField([major.name, major.category, major.summary, major.departments.join(" "), major.jobs.join(" ")].join(" "), field);
+    });
+    const result = { items, totalCount: totalCount || rawItems.length };
+    careerNetDictionaryCache.set(cacheKey, result);
+    return result;
+  }
+
+  function findMajorsForUniversity(univ, majors) {
+    const nameText = normalizeCareerText(univ.name);
+    const regionText = normalizeCareerText(univ.rawRegion || univ.region);
+    return majors.filter((major) => {
+      const departmentText = normalizeCareerText(major.departments.join(" "));
+      const summaryText = normalizeCareerText([major.name, major.summary, major.category].join(" "));
+      return departmentText.includes(nameText)
+        || (regionText && summaryText.includes(regionText))
+        || normalizeCareerText(univ.name).includes(normalizeCareerText(major.name.replace(/학과|과$/g, "")));
+    }).slice(0, 8);
+  }
+
+  function renderUniversityResults(container, filtered, totalCount, majorItems = []) {
+    universityResults = filtered;
+    container.innerHTML = "";
+    filtered.slice(0, universityVisibleCount).forEach((univ) => {
+      const relatedMajors = findMajorsForUniversity(univ, majorItems);
+      const majorHtml = relatedMajors.length
+        ? formatListChips(relatedMajors.map((major) => major.name), "개설학과 보기")
+        : `<span class="info-chip muted-chip">개설학과 보기</span>`;
+      const card = document.createElement("article");
+      card.className = "university-card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `${univ.name} 상세 정보 보기`);
+      card.innerHTML = `
+        <div class="university-card-head">
+          <div>
+            <span class="uni-region">${escapeHtml(univ.rawRegion || univ.region || "전국")}</span>
+            <h4>${escapeHtml(univ.name)}</h4>
+          </div>
+          <span class="match-pill info">커리어넷</span>
+        </div>
+        <dl class="university-card-meta">
+          <div><dt>학교종류</dt><dd>${escapeHtml(univ.schoolGubun || univ.schoolType || "대학교")}</dd></div>
+          ${univ.estType ? `<div><dt>설립</dt><dd>${escapeHtml(univ.estType)}</dd></div>` : ""}
+          ${univ.address || univ.campus ? `<div><dt>주소</dt><dd>${escapeHtml(univ.address || univ.campus)}</dd></div>` : ""}
+        </dl>
+        <div class="university-major-preview">
+          <strong>관련 학과</strong>
+          <div class="info-chip-wrap">${majorHtml}</div>
+        </div>
+        <div class="detail-action-stack">
+          <button type="button" class="outline btn-card-detail table-link">자세히 보기</button>
+          ${univ.link ? `<a class="hs-link table-link" href="${univ.link}" target="_blank" rel="noopener">홈페이지</a>` : ""}
+        </div>
+      `;
+      const openUniversityDetail = async () => {
+        showDetailLoading(univ.name, "커리어넷 학과상세 API에서 이 대학에 개설된 학과를 직접 확인합니다.");
+        try {
+          const directMajors = await fetchUniversityMajorsFromCareerNet(univ, univSubjectFilter?.value || "all", (done, total, count) => {
+            const body = document.getElementById("career-detail-body");
+            if (body) {
+              body.innerHTML = `
+                <section class="career-detail-section">
+                  <h4>학과상세 API 조회</h4>
+                  <div class="career-detail-loading"><div class="spinner"></div><p>${done.toLocaleString("ko-KR")}/${total.toLocaleString("ko-KR")}개 학과 확인 중 · 현재 ${count.toLocaleString("ko-KR")}개 연결</p></div>
+                </section>
+              `;
+            }
+          });
+          openCareerDetailModal({
+            badge: "대학교 정보",
+            title: univ.name,
+            subtitle: "커리어넷 학교정보 API와 학과상세 API에서 확인한 실제 정보입니다.",
+            sections: [
+              {
+                title: "대학 기본 정보",
+                html: `<dl class="career-detail-grid">${renderDetailRows([
+                  ["지역", univ.rawRegion || univ.region],
+                  ["학교 종류", univ.schoolGubun || univ.schoolType],
+                  ["설립", univ.estType],
+                  ["주소", univ.address],
+                  ["캠퍼스", univ.campus],
+                  ["전화", univ.phone]
+                ])}</dl>`
+              },
+              {
+                title: `개설학과 ${directMajors.length.toLocaleString("ko-KR")}개`,
+                html: directMajors.length
+                  ? `<div class="career-detail-list">${directMajors.map((major) => `
+                    <article>
+                      <strong>${escapeHtml(major.name)}</strong>
+                      ${major.summary ? `<p>${escapeHtml(major.summary)}</p>` : ""}
+                      <dl class="career-detail-mini">
+                        ${major.category ? `<div><dt>계열</dt><dd>${escapeHtml(major.category)}</dd></div>` : ""}
+                        ${major.university.name ? `<div><dt>개설대학</dt><dd>${escapeHtml(major.university.name)}</dd></div>` : ""}
+                        ${major.university.region || major.university.campus ? `<div><dt>지역/캠퍼스</dt><dd>${escapeHtml([major.university.region, major.university.campus].filter(Boolean).join(" · "))}</dd></div>` : ""}
+                        ${(major.jobs || []).length ? `<div><dt>관련직업</dt><dd>${escapeHtml((major.jobs || []).join(", "))}</dd></div>` : ""}
+                      </dl>
+                    </article>
+                  `).join("")}</div>`
+                  : `<div class="info-chip-wrap">${formatListChips(relatedMajors.map((major) => major.name), "학과정보 검색 탭에서 학과명으로 바로 확인")}</div>`
+              }
+            ],
+            actions: [
+              ...(univ.link ? [{ label: "대학 홈페이지 열기", href: univ.link, className: "cn-link" }] : []),
+              { label: "닫기", className: "outline" }
+            ]
+          });
+        } catch (error) {
+          console.error(error);
+          openCareerDetailModal({
+            badge: "대학교 정보",
+            title: univ.name,
+            subtitle: "대학 기본 정보와 학과 검색으로 확인 가능한 항목입니다.",
+            sections: [
+              {
+                title: "대학 기본 정보",
+                html: `<dl class="career-detail-grid">${renderDetailRows([
+                  ["지역", univ.rawRegion || univ.region],
+                  ["학교 종류", univ.schoolGubun || univ.schoolType],
+                  ["설립", univ.estType],
+                  ["주소", univ.address],
+                  ["캠퍼스", univ.campus],
+                  ["전화", univ.phone]
+                ])}</dl>`
+              }
+            ],
+            actions: [
+              ...(univ.link ? [{ label: "대학 홈페이지 열기", href: univ.link, className: "cn-link" }] : []),
+              { label: "닫기", className: "outline" }
+            ]
+          });
+        }
+      };
+      card.querySelector(".btn-card-detail")?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openUniversityDetail();
+      });
+      card.addEventListener("click", (event) => {
+        if (event.target.closest("a, button")) return;
+        openUniversityDetail();
+      });
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openUniversityDetail();
+        }
+      });
+      container.appendChild(card);
+    });
+
+    if (filtered.length > universityVisibleCount) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "load-more-btn table-more-btn";
+      more.style.gridColumn = "1 / -1";
+      more.textContent = `더 보기 (${Math.min(universityVisibleCount, filtered.length)}/${filtered.length})`;
+      more.addEventListener("click", () => {
+        universityVisibleCount += 20;
+        renderUniversityResults(container, universityResults, totalCount, majorItems);
+      });
+      container.appendChild(more);
+    }
+  }
+
   const matchUniversities = async () => {
     const requestId = ++univSearchRequestId;
+    universityVisibleCount = 20;
     const rawKeyword = (univSearchInput?.value || "").trim();
     const region = univRegionFilter ? univRegionFilter.value : "all";
     const subject = univSubjectFilter ? univSubjectFilter.value : "all";
-    const tbody = document.getElementById("univ-matching-tbody");
-    if (!tbody) return;
+    const univList = document.getElementById("univ-matching-list");
+    if (!univList) return;
 
     if (univStatus) {
       univStatus.textContent = "커리어넷 학교정보 API에서 대학교 정보를 불러오는 중입니다.";
     }
-    tbody.innerHTML = `<tr><td colspan="6" style="padding: 28px; text-align: center; color: var(--muted);">대학교 정보를 불러오는 중입니다.</td></tr>`;
+    renderApiLoading(univList, "대학교 정보를 불러오는 중입니다.");
 
     try {
       const { schools, totalCount } = await fetchCareerNetSchools({
@@ -3165,41 +4033,31 @@ function setupExplorePortal() {
       if (requestId !== univSearchRequestId) return;
 
       const filtered = schools.filter((school) => regionMatchesSchool(school, region));
+      const majorQuery = rawKeyword || (studentState.major || "").replace(/학과|과$/g, "");
+      const { items: majorItems } = await fetchCareerNetMajorList({ query: majorQuery, field: subject });
+      if (requestId !== univSearchRequestId) return;
 
     if (filtered.length === 0) {
         if (univStatus) {
           univStatus.textContent = "커리어넷 학교정보 API에서 현재 조건과 일치하는 대학교를 찾지 못했습니다.";
         }
-        tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">검색 결과가 없습니다. 대학명 일부나 지역 조건을 바꿔 보세요.</td></tr>`;
+        univList.innerHTML = `<article class="university-card" style="grid-column:1 / -1;"><h4>검색 결과가 없습니다</h4><p>대학명 일부나 지역 조건을 바꿔 보세요.</p></article>`;
       return;
     }
 
       if (univStatus) {
-        const subjectNote = subject === "all" ? "" : " 선택한 학과 계열은 아래 직업·학과 검색 탭에서 세부 학과 API로 다시 확인하세요.";
-        univStatus.textContent = `커리어넷 학교정보 API 기준 ${totalCount.toLocaleString("ko-KR")}곳 중 ${filtered.length.toLocaleString("ko-KR")}곳을 찾았습니다. 화면에는 100곳까지 표시됩니다.${subjectNote}`;
+        const renderedCount = Math.min(filtered.length, universityVisibleCount);
+        univStatus.textContent = `커리어넷 학교정보 API 기준 ${totalCount.toLocaleString("ko-KR")}곳 중 ${filtered.length.toLocaleString("ko-KR")}곳을 찾았습니다. 학과는 커리어넷 학과정보 API 검색 결과를 함께 표시합니다. 현재 ${renderedCount.toLocaleString("ko-KR")}곳 표시 중입니다.`;
       }
 
-      tbody.innerHTML = "";
-      filtered.slice(0, 100).forEach((univ) => {
-      const tr = document.createElement("tr");
-      tr.style.borderBottom = "1px solid var(--soft-line)";
-      tr.innerHTML = `
-        <td style="padding: 14px 16px; font-weight: 800; color: var(--ink);">${escapeHtml(univ.name)}</td>
-        <td style="padding: 14px 16px; color: var(--text);">${escapeHtml(univ.rawRegion || univ.region)}</td>
-        <td style="padding: 14px 16px; color: var(--text);">${escapeHtml(univ.schoolGubun || univ.schoolType || "대학교")}</td>
-        <td style="padding: 14px 16px; color: var(--text);">${escapeHtml(univ.estType || "정보 없음")}</td>
-        <td style="padding: 14px 16px; color: var(--muted); font-size: 13px;">${escapeHtml(univ.address || univ.campus || "주소 정보 없음")}</td>
-        <td style="padding: 14px 16px;">${univ.link ? `<a class="hs-link table-link" href="${univ.link}" target="_blank" rel="noopener">홈페이지</a>` : `<span style="color: var(--muted); font-size: 12px;">링크 없음</span>`}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+      renderUniversityResults(univList, filtered, totalCount, majorItems);
     } catch (error) {
       console.error(error);
       if (requestId !== univSearchRequestId) return;
       if (univStatus) {
         univStatus.textContent = "커리어넷 학교정보 API 연결에 실패했습니다.";
       }
-      tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; text-align: center; color: var(--muted);">대학교 정보는 내장 데이터 없이 커리어넷 API에서만 불러옵니다. 네트워크 요청을 확인해 주세요.</td></tr>`;
+      univList.innerHTML = `<article class="university-card" style="grid-column:1 / -1;"><h4>API 연결 필요</h4><p>커리어넷 학교정보 API 연결을 확인해 주세요.</p></article>`;
     }
   };
 
@@ -3218,6 +4076,12 @@ function setupExplorePortal() {
     window.clearTimeout(univSearchInput._jobbridgeTimer);
     univSearchInput._jobbridgeTimer = window.setTimeout(matchUniversities, 350);
   });
+
+  window.setTimeout(() => {
+    matchHighSchools();
+    syncUniversityTabGrades();
+    matchUniversities();
+  }, 0);
 
   // --- 3. 진로 흥미 정밀 검사 ---
   const riasecProfiles = {
@@ -3336,7 +4200,50 @@ function setupExplorePortal() {
     { type: "C", q: "문서, 기록, 통계, 예산처럼 체계적으로 관리하는 분야가 잘 맞을 것 같다." }
   ];
 
+  const cnQuestionExtensions = [
+    { type: "R", q: "드론, 로봇, 장비, 공구처럼 실제 기기를 조작하며 배우는 활동이 재미있다." },
+    { type: "I", q: "뉴스나 자료를 볼 때 왜 그런 결과가 나왔는지 원인을 더 찾아보고 싶다." },
+    { type: "A", q: "같은 주제라도 나만의 분위기와 표현 방식으로 새롭게 만들고 싶다." },
+    { type: "S", q: "친구가 진로를 고민할 때 정보를 찾아주고 선택을 도와주는 편이다." },
+    { type: "E", q: "팀 프로젝트에서 목표를 정하고 사람들을 설득해 실행까지 이끄는 일이 잘 맞는다." },
+    { type: "C", q: "자료 이름, 일정, 제출물을 꼼꼼하게 정리해 두면 마음이 편하다." },
+    { type: "R", q: "실험실, 공방, 조리실, 운동장처럼 몸을 움직이며 배우는 공간이 좋다." },
+    { type: "I", q: "복잡한 문제를 작은 단서로 나누어 분석하는 활동에 몰입한다." },
+    { type: "A", q: "글쓰기, 영상 편집, 디자인, 공연처럼 결과물이 보이는 활동을 선호한다." },
+    { type: "S", q: "사람의 마음, 건강, 교육, 복지처럼 누군가의 삶을 돕는 주제가 중요하다고 느낀다." },
+    { type: "E", q: "발표나 토론에서 내 생각을 분명하게 말하고 반응을 이끌어내는 것이 좋다." },
+    { type: "C", q: "규칙과 절차가 명확한 일을 맡으면 빠짐없이 처리할 자신이 있다." },
+    { type: "R", q: "제품을 직접 조립하거나 고장 난 부분을 찾아 수리하는 활동을 해보고 싶다." },
+    { type: "I", q: "통계, 실험, 관찰 기록처럼 근거가 있는 자료로 판단하는 편이다." },
+    { type: "A", q: "포스터, 앱 화면, 공간 구성처럼 사람들이 보고 느끼는 부분을 설계하고 싶다." },
+    { type: "S", q: "상대방의 상황을 듣고 필요한 말을 조심스럽게 골라 전하는 편이다." },
+    { type: "E", q: "새로운 동아리나 행사를 기획하고 참여자를 모으는 일이 흥미롭다." },
+    { type: "C", q: "계획표, 체크리스트, 파일 정리처럼 기준을 세워 관리하는 일이 익숙하다." },
+    { type: "R", q: "건축, 에너지, 자동차, 항공, 해양처럼 실제 구조와 작동 원리가 궁금하다." },
+    { type: "I", q: "생명, 환경, 우주, 인공지능처럼 탐구할수록 더 깊어지는 주제가 좋다." },
+    { type: "A", q: "사람들이 기억할 수 있는 이야기나 이미지를 만드는 데 관심이 있다." },
+    { type: "S", q: "멘토링, 봉사, 상담, 교육 활동을 하면 뿌듯함을 크게 느낀다." },
+    { type: "E", q: "사람들의 필요를 파악해 서비스나 상품으로 연결하는 과정이 흥미롭다." },
+    { type: "C", q: "돈, 문서, 데이터처럼 실수가 생기면 안 되는 정보를 다루는 일에 책임감을 느낀다." },
+    { type: "R", q: "현장 실습이나 체험 수업처럼 직접 해보면서 실력을 쌓는 방식이 잘 맞는다." },
+    { type: "I", q: "한 가지 질문을 오래 붙잡고 자료를 모아 결론을 내리는 편이다." },
+    { type: "A", q: "정답보다 개성과 해석이 중요한 과제가 더 매력적으로 느껴진다." },
+    { type: "S", q: "여러 사람 사이에서 의견을 조율하고 분위기를 안정시키는 역할을 자주 한다." },
+    { type: "E", q: "목표를 정하면 주변 사람을 설득해 함께 움직이게 만들고 싶다." },
+    { type: "C", q: "정해진 기준에 맞춰 결과물을 검토하고 오류를 줄이는 활동이 잘 맞는다." },
+    { type: "R", q: "농업, 조리, 스포츠, 제조, 의료기기처럼 손과 몸을 쓰는 분야도 탐색하고 싶다." },
+    { type: "I", q: "자료를 비교해 패턴을 찾고 미래 변화를 예측하는 활동에 흥미가 있다." },
+    { type: "A", q: "새로운 콘텐츠, 전시, 무대, 브랜드를 직접 기획해보고 싶다." },
+    { type: "S", q: "어린이, 노인, 환자, 친구처럼 도움을 필요로 하는 사람을 지원하는 일이 의미 있다." },
+    { type: "E", q: "경쟁 상황에서도 전략을 세우고 결과를 만들어내는 과정에 힘이 난다." },
+    { type: "C", q: "학교생활기록부, 포트폴리오, 활동 증빙처럼 기록을 정확히 남기는 일이 중요하다고 생각한다." }
+  ];
+
+  const cnQuestionPool = [...cnQuestions, ...cnQuestionExtensions];
+
   let currentQ = 0;
+  let selectedQuestionCount = 36;
+  let activeQuestions = cnQuestionPool.slice(0, selectedQuestionCount);
   let qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
   let qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
   let qResponses = [];
@@ -3350,12 +4257,22 @@ function setupExplorePortal() {
   const qTotalNum = document.getElementById("q-total-num");
   const qText = document.getElementById("q-text");
 
+  const resetInterestTest = (count = selectedQuestionCount) => {
+    selectedQuestionCount = Math.min(Number(count) || 36, cnQuestionPool.length);
+    activeQuestions = cnQuestionPool.slice(0, selectedQuestionCount);
+    currentQ = 0;
+    qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+    qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
+    qResponses = [];
+    if (qTotalNum) qTotalNum.textContent = activeQuestions.length;
+  };
+
   const renderQuestion = () => {
     if (!qCurrentNum || !qText) return;
     
     qCurrentNum.textContent = currentQ + 1;
-    if (qTotalNum) qTotalNum.textContent = cnQuestions.length;
-    const question = cnQuestions[currentQ];
+    if (qTotalNum) qTotalNum.textContent = activeQuestions.length;
+    const question = activeQuestions[currentQ];
     qText.textContent = question.q;
 
     const answersList = document.querySelector(".test-answers-list");
@@ -3372,7 +4289,7 @@ function setupExplorePortal() {
         qCounts[question.type]++;
         qResponses.push({ type: question.type, value: option.value });
         currentQ++;
-        if (currentQ < cnQuestions.length) {
+        if (currentQ < activeQuestions.length) {
           renderQuestion();
         } else {
           showTestResult();
@@ -3473,23 +4390,29 @@ function setupExplorePortal() {
     });
   };
 
+  document.querySelectorAll("[data-test-length]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const count = Number(button.dataset.testLength) || 36;
+      document.querySelectorAll("[data-test-length]").forEach((item) => item.classList.toggle("is-active", item === button));
+      selectedQuestionCount = count;
+      if (btnStartTest) btnStartTest.textContent = `${count}문항 검사 시작`;
+      if (qTotalNum) qTotalNum.textContent = count;
+    });
+  });
+
+  resetInterestTest(selectedQuestionCount);
+
   btnStartTest?.addEventListener("click", () => {
     if (introBox) introBox.style.display = "none";
     if (questionBox) questionBox.style.display = "block";
-    currentQ = 0;
-    qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
-    qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
-    qResponses = [];
+    resetInterestTest(selectedQuestionCount);
     renderQuestion();
   });
 
   btnRestartTest?.addEventListener("click", () => {
     if (resultBox) resultBox.style.display = "none";
     if (questionBox) questionBox.style.display = "block";
-    currentQ = 0;
-    qScores = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
-    qCounts = Object.fromEntries(Object.keys(riasecProfiles).map((key) => [key, 0]));
-    qResponses = [];
+    resetInterestTest(selectedQuestionCount);
     renderQuestion();
   });
 
@@ -3547,31 +4470,59 @@ function setupExplorePortal() {
   const cnFieldFilter = document.getElementById("cn-field-filter");
 
   function mapCareerNetJob(item = {}) {
-    const seq = item.job_cd || item.seq || item.jobdicSeq || item.job_code || "";
+    const seq = firstText(item.job_cd, item.seq, item.jobdicSeq, item.job_code, item.JOB_CD);
+    const name = firstText(item.job_nm, item.jobNm, item.job, item.JOB_NM);
     return {
-      name: stripApiText(item.job_nm || item.job || "직업명 미상"),
-      category: stripApiText(item.top_nm || item.profession || item.tob_nm || "직업분류 정보 없음"),
-      field: stripApiText(item.aptit_name || item.jobSe || ""),
-      summary: stripApiText(item.work || item.summary || "커리어넷 직업백과에서 제공한 직업 정보입니다."),
-      wage: stripApiText(item.wage || item.salery || "정보 없음"),
-      related: stripApiText(item.rel_job_nm || item.similarJob || item.similarjob || ""),
+      name: name || "직업명 미상",
+      category: firstText(item.top_nm, item.profession, item.tob_nm, item.jobSe, item.jobsFld) || "직업분류",
+      field: firstText(item.aptit_name, item.jobSe, item.jobsFld),
+      summary: firstText(item.work, item.summary, item.description, item.jobSum),
+      wage: firstText(item.wage, item.salery, item.salary),
+      related: firstText(item.rel_job_nm, item.similarJob, item.similarjob),
       seq,
       link: seq ? `https://www.career.go.kr/cnet/front/base/job/jobView.do?SEQ=${encodeURIComponent(seq)}` : ""
     };
   }
 
-  function mapCareerNetMajor(item = {}) {
-    const seq = item.majorSeq || item.MAJOR_SEQ || item.SEQ || "";
-    const name = item.facilName || item.mClass || item.majorNm || item.major || item.MAJOR_NM || "학과명 미상";
-    return {
-      name: stripApiText(name),
-      category: stripApiText(item.lClass || item.category || "계열 정보 없음"),
-      summary: stripApiText(item.summary || item.purpose || item.interest || "커리어넷 학과정보 API에서 제공한 학과 정보입니다."),
-      jobs: stripApiText(item.relatedjob || item.jobNames || item.jobs || ""),
-      department: stripApiText(item.department || item.mClass || item.facilName || ""),
-      seq,
-      link: seq ? `https://www.career.go.kr/cnet/front/base/major/FunivMajorView.do?SEQ=${encodeURIComponent(seq)}` : ""
-    };
+  async function showDictionaryDetail(type, item) {
+    if (type === "jobs") {
+      showDetailLoading(item.name, "하는 일, 관련 학과·자격, 적성, 고용 전망을 불러오는 중입니다.");
+      let detail = {};
+      try {
+        detail = await fetchCareerNetJobDetail(item.seq);
+      } catch (error) {
+        console.error(error);
+      }
+      openCareerDetailModal({
+        badge: "직업백과 API",
+        title: item.name,
+        subtitle: "커리어넷 직업백과 API에서 확인한 직업 상세 정보입니다.",
+        sections: buildJobDetailSections(item, detail || {}),
+        actions: [
+          ...(item.link ? [{ label: "커리어넷 상세 열기", href: item.link, className: "cn-link" }] : []),
+          { label: "닫기", className: "outline" }
+        ]
+      });
+      return;
+    }
+
+    showDetailLoading(item.name, "학과개요, 학과특성, 관련 교과목과 진출 분야를 불러오는 중입니다.");
+    let detail = {};
+    try {
+      detail = await fetchCareerNetMajorDetail(item.seq);
+    } catch (error) {
+      console.error(error);
+    }
+    openCareerDetailModal({
+      badge: "학과정보 API",
+      title: item.name,
+      subtitle: "커리어넷 학과정보 API에서 확인한 학과 상세 정보입니다.",
+      sections: buildMajorDetailSections(item, detail || {}),
+      actions: [
+        ...(item.link ? [{ label: "커리어넷 상세 열기", href: item.link, className: "cn-link" }] : []),
+        { label: "닫기", className: "outline" }
+      ]
+    });
   }
 
   async function fetchCareerNetJobs({ query, field }) {
@@ -3580,20 +4531,24 @@ function setupExplorePortal() {
 
     const jobs = [];
     let totalCount = 0;
-    const baseParams = { apiKey: CAREERNET_API_KEY };
+    const baseParams = {
+      apiKey: CAREERNET_API_KEY,
+      svcType: "api",
+      svcCode: "JOB",
+      contentType: "json",
+      gubun: "job_dic_list",
+      perPage: "100"
+    };
     if (query) baseParams.searchJobNm = query;
-    if (field !== "all" && careerNetJobCategoryCodes[field]) {
-      baseParams.searchJobCd = careerNetJobCategoryCodes[field];
-    }
 
-    for (let page = 1; page <= 60; page++) {
-      const params = new URLSearchParams({ ...baseParams, pageIndex: String(page) });
-      const response = await fetch(`${CAREERNET_JOB_API}?${params.toString()}`);
+    for (let page = 1; page <= 20; page++) {
+      const params = new URLSearchParams({ ...baseParams, thisPage: String(page) });
+      const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
       if (!response.ok) throw new Error("커리어넷 직업백과 API 응답 실패");
       const data = await response.json();
-      const list = toArray(data.jobs);
+      const list = getCareerNetContent(data);
       if (!list.length) break;
-      totalCount = Number(data.count || totalCount || list.length);
+      totalCount = Number(list[0]?.totalCount || data?.dataSearch?.totalCount || totalCount || list.length);
       jobs.push(...list.map(mapCareerNetJob));
       if (jobs.length >= totalCount) break;
     }
@@ -3604,39 +4559,19 @@ function setupExplorePortal() {
   }
 
   async function fetchCareerNetMajors({ query, field }) {
-    const cacheKey = JSON.stringify({ type: "majors", query, field });
-    if (careerNetDictionaryCache.has(cacheKey)) return careerNetDictionaryCache.get(cacheKey);
-
-    const baseParams = {
-      apiKey: CAREERNET_API_KEY,
-      svcType: "api",
-      svcCode: "MAJOR",
-      contentType: "json",
-      gubun: "univ_list",
-      perPage: "100"
-    };
-    if (query) baseParams.searchTitle = query;
-    if (field !== "all" && careerNetMajorSubjectCodes[field]) {
-      baseParams.subject = careerNetMajorSubjectCodes[field];
-    }
-
-    const majors = [];
-    let totalCount = 0;
-    for (let page = 1; page <= 20; page++) {
-      const params = new URLSearchParams({ ...baseParams, thisPage: String(page) });
-      const response = await fetch(`${CAREERNET_OPEN_API}?${params.toString()}`);
-      if (!response.ok) throw new Error("커리어넷 학과정보 API 응답 실패");
-      const data = await response.json();
-      const list = getCareerNetContent(data);
-      if (!list.length) break;
-      totalCount = Number(list[0]?.totalCount || data?.dataSearch?.totalCount || totalCount || list.length);
-      majors.push(...list.map(mapCareerNetMajor));
-      if (majors.length >= totalCount) break;
-    }
-
-    const result = { items: majors, totalCount: totalCount || majors.length };
-    careerNetDictionaryCache.set(cacheKey, result);
-    return result;
+    const { items, totalCount } = await fetchCareerNetMajorList({ query, field, perPage: 100, maxPages: 20 });
+    return { items: items.map((major) => ({
+      name: major.name,
+      category: major.category,
+      summary: major.summary || "",
+      jobs: major.jobs.join(", "),
+      department: major.departments.join(", "),
+      seq: major.seq,
+      employment: major.employment,
+      salary: major.salary,
+      qualification: major.qualification,
+      link: major.seq ? `https://www.career.go.kr/cnet/front/base/major/FunivMajorView.do?SEQ=${encodeURIComponent(major.seq)}` : ""
+    })), totalCount };
   }
 
   async function searchCareerNetDictionary(query, type, field) {
@@ -3677,30 +4612,91 @@ function setupExplorePortal() {
         return;
       }
 
-      items.slice(0, 120).forEach(item => {
+      careerSearchResults = items;
+      careerVisibleCount = 24;
+      renderCareerSearchCards(type, resultsList);
+    } catch (err) {
+      console.error(err);
+      if (searchStatus) searchStatus.textContent = "커리어넷 API 검색 중 오류가 발생했습니다.";
+      resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">내장 결과 없이 커리어넷 API에서만 검색합니다. 네트워크 요청을 확인해 주세요.</div>`;
+    }
+  };
+
+  const renderCareerSearchCards = (type, target) => {
+    target.innerHTML = "";
+    careerSearchResults.slice(0, careerVisibleCount).forEach(item => {
         const card = document.createElement("div");
-        card.className = "cn-result-card";
+        card.className = `cn-result-card career-api-card ${type === "jobs" ? "job-card-ui" : "major-card-ui"}`;
         
-        let metaHtml = "";
         let regBtnText = "";
+        const summary = (item.summary || "").replace(/\s+/g, " ").trim();
+        const visualLabel = type === "jobs" ? "직업" : "학과";
+        const primaryMetric = type === "jobs"
+          ? ["평균연봉", item.wage || ""]
+          : ["취업률", item.employment || ""];
+        const secondaryMetric = type === "jobs"
+          ? ["관련직업", item.related || item.category || ""]
+          : ["계열", item.category || ""];
+        const tertiaryMetric = type === "jobs"
+          ? ["직업분류", item.category || item.field || ""]
+          : ["개설 정보", item.department || item.jobs || ""];
+        const metricRows = [primaryMetric, secondaryMetric, tertiaryMetric]
+          .filter(([, value]) => value)
+          .slice(0, 3);
+        const tagHtml = type === "jobs"
+          ? `${item.category ? `<span>${escapeHtml(item.category)}</span>` : ""}${item.field ? `<span>${escapeHtml(item.field)}</span>` : ""}`
+          : `${item.category ? `<span>${escapeHtml(item.category)}</span>` : ""}${item.department ? `<span>${escapeHtml(item.department.split(",")[0])}</span>` : ""}`;
         if (type === "jobs") {
-          metaHtml = `<b>평균 연봉:</b> ${escapeHtml(item.wage || "정보 없음")}<br><b>직업분류:</b> ${escapeHtml(item.category || item.field || "미분류")}${item.related ? `<br><b>관련직업:</b> ${escapeHtml(item.related)}` : ""}`;
           regBtnText = "내 희망 직업으로 등록";
         } else {
-          metaHtml = `<b>계열:</b> ${escapeHtml(item.category || "미분류")}<br><b>세부학과:</b> ${escapeHtml(item.department || item.name)}${item.jobs ? `<br><b>관련직업:</b> ${escapeHtml(item.jobs)}` : ""}`;
           regBtnText = "내 희망 학과로 등록";
         }
 
         card.innerHTML = `
-          <span class="cn-badge">${type === "jobs" ? "직업 정보" : "학과 정보"}</span>
-          <h4 style="margin: 6px 0 0; font-size: 16.5px; color: var(--ink); font-weight: 800;">${escapeHtml(item.name)}</h4>
-          <p style="font-size: 13.5px; color: var(--text); margin-top: 8px; margin-bottom: 8px;">${escapeHtml(item.summary)}</p>
-          <div class="cn-meta" style="font-size: 12px; color: var(--muted); border-top: 1px solid var(--soft-line); padding-top: 10px; margin-top: auto; margin-bottom: 12px;">${metaHtml}</div>
-          ${item.link ? `<a class="cn-link" href="${item.link}" target="_blank" rel="noopener">커리어넷 상세 정보 열기</a>` : ""}
-          <button type="button" class="primary btn-reg-target" style="width: 100%; height: 38px; border: 0; cursor: pointer; border-radius: 8px; font-weight: 700;">${regBtnText}</button>
+          <div class="career-api-card-head">
+            <h4>${escapeHtml(item.name)}</h4>
+            <div class="career-card-quick-actions">
+              <button type="button" class="btn-card-detail" aria-label="${escapeHtml(item.name)} 자세히 보기">추천</button>
+              <button type="button" class="btn-reg-target" aria-label="${escapeHtml(item.name)} 관심 등록">관심</button>
+            </div>
+          </div>
+          <div class="career-api-card-main">
+            <div class="career-card-visual" data-kind="${visualLabel}">
+              <span>${escapeHtml(visualLabel)}</span>
+              <strong>${escapeHtml(item.name.slice(0, 2))}</strong>
+            </div>
+            <dl class="career-card-stats">
+              ${metricRows.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
+            </dl>
+          </div>
+          <div class="career-card-tags">${tagHtml || `<span>${escapeHtml(visualLabel)} 정보</span>`}</div>
+          <p class="career-card-summary">${escapeHtml(summary)}</p>
+          <div class="career-card-bottom">
+            ${item.link ? `<a class="cn-link" href="${item.link}" target="_blank" rel="noopener">커리어넷 열기</a>` : ""}
+            <button type="button" class="outline btn-card-detail">자세히 보기</button>
+          </div>
         `;
 
-        card.querySelector(".btn-reg-target").onclick = async () => {
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `${item.name} 상세 정보 보기`);
+        card.querySelectorAll(".btn-card-detail").forEach((button) => button.addEventListener("click", async (event) => {
+          event.stopPropagation();
+          await showDictionaryDetail(type, item);
+        }));
+        card.addEventListener("click", async (event) => {
+          if (event.target.closest("a, button")) return;
+          await showDictionaryDetail(type, item);
+        });
+        card.addEventListener("keydown", async (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            await showDictionaryDetail(type, item);
+          }
+        });
+
+        card.querySelector(".btn-reg-target").onclick = async (event) => {
+          event.stopPropagation();
           if (!currentUser) {
             showToast("로그인 후 희망 직업·학과를 저장할 수 있습니다.");
             setView("auth");
@@ -3717,12 +4713,20 @@ function setupExplorePortal() {
           syncProfileInputsToUI();
         };
 
-        resultsList.appendChild(card);
+        target.appendChild(card);
       });
-    } catch (err) {
-      console.error(err);
-      if (searchStatus) searchStatus.textContent = "커리어넷 API 검색 중 오류가 발생했습니다.";
-      resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">내장 결과 없이 커리어넷 API에서만 검색합니다. 네트워크 요청을 확인해 주세요.</div>`;
+
+    if (careerSearchResults.length > careerVisibleCount) {
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "load-more-btn";
+      more.style.gridColumn = "1 / -1";
+      more.textContent = `더 보기 (${careerVisibleCount}/${careerSearchResults.length})`;
+      more.addEventListener("click", () => {
+        careerVisibleCount += 24;
+        renderCareerSearchCards(type, target);
+      });
+      target.appendChild(more);
     }
   };
 
@@ -3734,6 +4738,8 @@ function setupExplorePortal() {
   searchInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") runCnSearch();
   });
+
+  window.setTimeout(runCnSearch, 0);
 }
 
 function syncIntegratedInputs() {
