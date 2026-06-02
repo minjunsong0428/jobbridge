@@ -5326,7 +5326,7 @@ mark {
   transform: scale(1.05);
 }
 
-/* 꿈잇다 연계 및 탭 디자인 통일: 진로 연결 화면을 기준으로 정리 */
+/* 꿈잇다 기능 및 탭 디자인 통일: 진로 연결 화면을 기준으로 정리 */
 .view:not([data-panel="home"]) > .page-title {
   margin-bottom: 18px;
 }

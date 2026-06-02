@@ -708,6 +708,7 @@ function updateAuthUI(isLoggedIn) {
       button.removeAttribute("aria-label");
     }
   });
+  syncActiveNav(activeView || "home");
   
   if (isLoggedIn) {
     if (btnLogin) {
@@ -1146,6 +1147,10 @@ let studentState = {
   activityStyles: [],
   interestProfile: null,
   onboardingCompleted: false,
+  dream: {
+    feedbacks: [],
+    interviews: []
+  },
 };
 
 
@@ -1164,6 +1169,12 @@ const labels = {
 
 const protectedViews = new Set(["record", "portfolio", "profile", "feedback", "notifications"]);
 let activeView = "home";
+
+function syncActiveNav(view) {
+  document.querySelectorAll(".nav-item[data-view], .mobile-nav-item[data-view]").forEach((item) => {
+    item.classList.toggle("is-active", item.dataset.view === view);
+  });
+}
 
 function cleanStudentDisplayName(name) {
   const value = String(name || "").trim();
@@ -1489,15 +1500,7 @@ function setView(view) {
     panel.classList.toggle("is-active", panel.dataset.panel === view);
   });
 
-  buttons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.view === view);
-  });
-
-  // Sync mobile bottom nav items
-  const mobileNavItems = document.querySelectorAll(".mobile-bottom-nav .mobile-nav-item");
-  mobileNavItems.forEach(item => {
-    item.classList.toggle("is-active", item.dataset.view === view);
-  });
+  syncActiveNav(view);
 
   if (crumb) {
     crumb.textContent = labels[view] || "홈";
@@ -1505,6 +1508,14 @@ function setView(view) {
 
   if (view === "notifications") {
     renderNotifications();
+  }
+
+  if (view === "dream") {
+    updateDreamDashboard();
+  }
+
+  if (view === "zep") {
+    updateZepShowcase();
   }
 
   if (view === "explore" && typeof window.jobbridgeRefreshExplore === "function") {
@@ -1515,6 +1526,260 @@ function setView(view) {
   if (surface) {
     surface.scrollIntoView({ block: "start", behavior: "smooth" });
   }
+}
+
+// ZEP 전시관 — 포트폴리오(학생정보·활동) 기반 존별 데이터 반영
+function updateZepShowcase() {
+  var st = (typeof studentState !== "undefined" && studentState) ? studentState : {};
+  var acts = (typeof activitiesList !== "undefined" && activitiesList) ? activitiesList : [];
+  var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  set("zep-intro", st.name ? (st.name + " 학생의 자기소개 공간" + (st.intro ? " · " + st.intro : "")) : "나를 소개하고 성장 과정을 보여주는 공간이에요.");
+  set("zep-activity", acts.length ? ("총 " + acts.length + "건의 활동이 전시돼요.") : "교내·교외 활동과 경험을 기록한 공간이에요.");
+  var proj = acts.filter(function (a) { return a && a.category === "프로젝트"; }).length;
+  set("zep-project", proj ? ("프로젝트 " + proj + "건을 전시해요.") : "프로젝트 결과물을 전시하고 성과를 소개해요.");
+  set("zep-career", (st.job || st.major) ? ((st.job || "직업 미정") + " · " + (st.major || "학과 미정")) : "관심 분야와 관련 직업·학과를 연결해 보여줘요.");
+  var interests = Array.isArray(st.interests) ? st.interests.join(", ") : (st.interests || "");
+  set("zep-mindmap", interests ? ("관심 분야: " + interests) : "진로 탐색과 미래 계획을 마인드맵으로 정리해요.");
+}
+
+// 꿈잇다 대시보드 — 학생정보·활동기록 데이터 반영
+function updateDreamDashboard() {
+  var cnt = (typeof activitiesList !== "undefined" && activitiesList) ? activitiesList.length : 0;
+  var st = (typeof studentState !== "undefined" && studentState) ? studentState : {};
+  var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+  set("dream-activity-count", cnt + "개");
+  set("dream-job-txt", st.job || "미설정");
+  set("dream-major-txt", st.major || "미설정");
+  var score = 0;
+  if (st.job) score += 25;
+  if (st.major) score += 25;
+  if (cnt > 0) score += Math.min(50, cnt * 10);
+  set("dream-progress-txt", Math.min(100, score) + "%");
+  renderDreamWorkspace();
+}
+
+function ensureDreamData() {
+  if (!studentState.dream || typeof studentState.dream !== "object") {
+    studentState.dream = {};
+  }
+  if (!Array.isArray(studentState.dream.feedbacks)) studentState.dream.feedbacks = [];
+  if (!Array.isArray(studentState.dream.interviews)) studentState.dream.interviews = [];
+  return studentState.dream;
+}
+
+function formatDreamDate(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}.${m}.${d}`;
+}
+
+function getDreamCompletionChecks() {
+  const interests = Array.isArray(studentState.interests) ? studentState.interests : [];
+  const feedbacks = ensureDreamData().feedbacks;
+  const interviews = ensureDreamData().interviews;
+  const projectCount = activitiesList.filter((item) => item.category === "프로젝트").length;
+  return [
+    { label: "학생 기본 정보 입력", done: Boolean(studentState.name && studentState.grade) },
+    { label: "관심 분야 또는 흥미검사 결과 선택", done: interests.length > 0 || Boolean(studentState.interestProfile) },
+    { label: "활동 기록 3개 이상 저장", done: activitiesList.length >= 3 },
+    { label: "프로젝트 결과물 1개 이상 정리", done: projectCount > 0 },
+    { label: "희망 직업과 희망 학과 설정", done: Boolean(studentState.job && studentState.major) },
+    { label: "상담 피드백 또는 모의면접 기록", done: feedbacks.length > 0 || interviews.length > 0 }
+  ];
+}
+
+function buildDreamInterviewQuestions(record = {}) {
+  const title = record.title || "선택한 활동";
+  const career = record.career || studentState.job || "희망 진로";
+  const category = record.category || "활동";
+  return [
+    `${title} 활동에서 본인이 맡은 역할과 가장 중요한 선택은 무엇이었나요?`,
+    `${category} 경험이 ${career} 진로와 연결된다고 생각한 이유를 설명해 주세요.`,
+    `활동 중 어려웠던 점과 해결 방법을 구체적인 사례로 말해 주세요.`,
+    `이 경험을 바탕으로 앞으로 보완하거나 더 탐구하고 싶은 주제는 무엇인가요?`
+  ];
+}
+
+function renderDreamWorkspace() {
+  if (!document.getElementById("dream-workspace")) return;
+  const dream = ensureDreamData();
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  const interests = Array.isArray(studentState.interests) ? studentState.interests : [];
+  const latest = activitiesList[0];
+  set("dream-profile-name", cleanStudentDisplayName(studentState.name) || "이름 미입력");
+  set("dream-profile-grade", studentState.grade || "학년 미입력");
+  set("dream-profile-interests", interests.length ? interests.join(", ") : "미설정");
+  set("dream-profile-latest", latest ? `${latest.title} · ${latest.category}` : "기록 없음");
+
+  const designList = document.getElementById("dream-design-list");
+  if (designList) {
+    const rows = [
+      `희망 직업: ${studentState.job || "미설정"}`,
+      `희망 학과: ${studentState.major || "미설정"}`,
+      `성적 정보: ${studentState.gpa ? `${studentState.gpa.toFixed(1)}등급` : "내신 미입력"} / ${studentState.mock ? `${studentState.mock}%` : "모의고사 미입력"}`,
+      `활동 반영: ${activitiesList.length}개`
+    ];
+    designList.innerHTML = rows.map((row) => `<li>${escapeHtml(row)}</li>`).join("");
+  }
+
+  const activitySelect = document.getElementById("dream-interview-activity");
+  if (activitySelect) {
+    const previous = activitySelect.value;
+    activitySelect.innerHTML = activitiesList.length
+      ? activitiesList.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)} · ${escapeHtml(item.category)}</option>`).join("")
+      : `<option value="">활동 기록이 필요합니다</option>`;
+    if (previous && activitiesList.some((item) => item.id === previous)) activitySelect.value = previous;
+  }
+
+  const feedbackList = document.getElementById("dream-feedback-list");
+  if (feedbackList) {
+    feedbackList.innerHTML = dream.feedbacks.length
+      ? dream.feedbacks.slice(0, 4).map((item) => `
+        <article>
+          <strong>${escapeHtml(item.tag)} · ${escapeHtml(item.date)}</strong>
+          <p>${escapeHtml(item.comment)}</p>
+          <p>반영 메모: ${escapeHtml(item.note)}</p>
+        </article>
+      `).join("")
+      : `<article><strong>저장된 피드백이 없어요</strong><p>선생님 의견과 반영 메모를 저장하면 이곳에 남습니다.</p></article>`;
+  }
+
+  const experienceList = document.getElementById("dream-experience-list");
+  if (experienceList) {
+    const primary = interests[0] || studentState.job || "진로";
+    const experienceRows = [
+      { title: `${primary} 관련 직업인 인터뷰`, text: "질문지를 만들고 활동 기록에 면담 내용을 정리합니다." },
+      { title: `${studentState.major || "희망 학과"} 학과 탐색`, text: "학과 개요, 관련 직업, 고교 선택 과목을 확인합니다." },
+      { title: "학교·전공 비교표 작성", text: "관심 학교와 학과 후보를 3곳 이상 비교합니다." }
+    ];
+    experienceList.innerHTML = experienceRows.map((item) => `
+      <article><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.text)}</p></article>
+    `).join("");
+  }
+
+  const checks = getDreamCompletionChecks();
+  const doneCount = checks.filter((item) => item.done).length;
+  const percent = Math.round((doneCount / checks.length) * 100);
+  const bar = document.getElementById("dream-portfolio-bar");
+  if (bar) bar.style.width = `${percent}%`;
+  const checkList = document.getElementById("dream-portfolio-checks");
+  if (checkList) {
+    checkList.innerHTML = checks.map((item) => `<li class="${item.done ? "is-done" : ""}">${escapeHtml(item.label)}</li>`).join("");
+  }
+
+  const questionList = document.getElementById("dream-question-list");
+  if (questionList && !questionList.dataset.generated) {
+    const record = activitiesList[0] || {};
+    questionList.innerHTML = buildDreamInterviewQuestions(record).map((q) => `<li>${escapeHtml(q)}</li>`).join("");
+  }
+}
+
+function setupDreamFeatureHandlers() {
+  const workspace = document.getElementById("dream-workspace");
+  if (!workspace || workspace.dataset.ready === "true") return;
+  workspace.dataset.ready = "true";
+  workspace.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-dream-action]");
+    if (!button) return;
+    const action = button.dataset.dreamAction;
+
+    if (["profile", "record", "portfolio", "zep"].includes(action)) {
+      setView(action);
+      return;
+    }
+    if (action === "interest-test") {
+      setView("explore");
+      window.setTimeout(() => document.querySelector('[data-explore-tab="psychology"]')?.click(), 60);
+      return;
+    }
+    if (action === "school-search") {
+      setView("explore");
+      window.setTimeout(() => document.querySelector('[data-explore-tab="highschool"]')?.click(), 60);
+      return;
+    }
+    if (action === "roadmap") {
+      setView("explore");
+      window.setTimeout(() => {
+        document.querySelector('[data-explore-tab="integrated"]')?.click();
+        document.querySelector(".roadmap-designer-card")?.scrollIntoView({ block: "start", behavior: "smooth" });
+      }, 60);
+      return;
+    }
+    if (action === "open-feedback") {
+      setView("feedback");
+      return;
+    }
+    if (action === "share") {
+      copyText(`${location.href.split("#")[0]}#portfolio`, "꿈잇다 포트폴리오 공유 링크를 복사했어요.");
+      return;
+    }
+    if (action === "add-experience-todo") {
+      addTodoItem(`${primaryInterest() || studentState.job || "진로"} 체험 활동 후보 찾기`);
+      return;
+    }
+    if (action === "generate-interview") {
+      const selectedId = document.getElementById("dream-interview-activity")?.value;
+      const record = activitiesList.find((item) => item.id === selectedId) || activitiesList[0] || {};
+      const list = document.getElementById("dream-question-list");
+      if (list) {
+        list.dataset.generated = "true";
+        list.innerHTML = buildDreamInterviewQuestions(record).map((q) => `<li>${escapeHtml(q)}</li>`).join("");
+      }
+      showToast("활동 기반 예상 질문을 생성했어요.");
+      return;
+    }
+    if (action === "save-feedback") {
+      if (!currentUser) {
+        requireAuth("상담 피드백 저장");
+        return;
+      }
+      const tag = document.getElementById("dream-feedback-tag")?.value || "진로 연결성";
+      const comment = document.getElementById("dream-feedback-comment")?.value.trim();
+      const note = document.getElementById("dream-feedback-note")?.value.trim();
+      if (!comment || !note) {
+        showToast("선생님 의견과 반영 메모를 입력해 주세요.");
+        return;
+      }
+      const dream = ensureDreamData();
+      dream.feedbacks.unshift({ id: createActivityId(), tag, comment, note, date: formatDreamDate() });
+      document.getElementById("dream-feedback-comment").value = "";
+      document.getElementById("dream-feedback-note").value = "";
+      await saveStudentStateToServer();
+      renderDreamWorkspace();
+      showToast("꿈잇다 상담 피드백을 저장했어요.");
+      return;
+    }
+    if (action === "save-interview") {
+      if (!currentUser) {
+        requireAuth("모의면접 답변 저장");
+        return;
+      }
+      const selectedId = document.getElementById("dream-interview-activity")?.value;
+      const record = activitiesList.find((item) => item.id === selectedId) || {};
+      const answer = document.getElementById("dream-interview-answer")?.value.trim();
+      if (!selectedId || !answer) {
+        showToast("활동을 선택하고 답변 키워드를 입력해 주세요.");
+        return;
+      }
+      const dream = ensureDreamData();
+      dream.interviews.unshift({
+        id: createActivityId(),
+        activityId: selectedId,
+        activityTitle: record.title || "선택 활동",
+        answer,
+        questions: buildDreamInterviewQuestions(record),
+        date: formatDreamDate()
+      });
+      document.getElementById("dream-interview-answer").value = "";
+      await saveStudentStateToServer();
+      renderDreamWorkspace();
+      showToast("모의면접 답변을 저장했어요.");
+    }
+  });
 }
 
 function selectedCategory() {
@@ -1755,6 +2020,13 @@ function setupRecordForm() {
       return null;
     }
 
+    const contentVal = contentTA?.value.trim();
+    if (!contentVal) {
+      showToast("활동 내용을 입력해 주세요.");
+      contentTA?.focus();
+      return null;
+    }
+
     const rawDate = dateInputEl?.value || "";
     const date = rawDate ? rawDate.replace(/-/g, ".") : todayText();
     const category = categorySelect?.value || "프로젝트";
@@ -1771,7 +2043,7 @@ function setupRecordForm() {
       date,
       category,
       career,
-      content: contentTA?.value.trim() || "",
+      content: contentVal,
       details: collectDynamicFields(),
       learned: learnedTA?.value.trim() || "",
       feeling: feelingTA?.value.trim() || "",
@@ -1843,6 +2115,7 @@ function setupRecordForm() {
     renderActivityLists();
     syncSelectedActivity(record);
     updatePortfolioFromRecord(record);
+    updateDreamDashboard();
 
     const firstTodo = document.querySelector(".daily-todo input[type='checkbox']");
     if (firstTodo && !firstTodo.checked) {
@@ -1894,6 +2167,7 @@ function setupRecordForm() {
           syncSelectedActivity(activitiesList[0]);
           updatePortfolioFromRecord(activitiesList[0]);
         }
+        updateDreamDashboard();
         showToast("활동 기록을 삭제했어요.");
       }
     });
@@ -1908,6 +2182,14 @@ function setupCategoryTabs() {
       });
       const selectedCat = tab.textContent.trim();
       filterActivityList(selectedCat);
+      // 탭으로 분야 선택 시 입력폼 카테고리도 맞춰 분야별 입력 항목을 갱신
+      if (selectedCat !== "전체") {
+        const sel = document.getElementById("record-category");
+        if (sel && sel.value !== selectedCat) {
+          sel.value = selectedCat;
+          sel.dispatchEvent(new Event("change"));
+        }
+      }
     });
   });
 }
@@ -2001,13 +2283,13 @@ function updateDigitalCardAndDashboard() {
   if (avatarCard) avatarCard.textContent = initials;
   
   const activeCount = document.querySelectorAll(".summary-cards li").length;
-  if (dashQ) dashQ.textContent = `${activeCount}개 활동 연동`;
+  if (dashQ) dashQ.textContent = `${activeCount}개 활동 반영`;
   
   if (dashTip) {
     if (activeCount >= 3) {
-      dashTip.textContent = `현재 연동된 활동(${activeCount}개)이 충분하여 학종 정성 경쟁력이 우수합니다. [진로 설계] 탭에서 종합 입시 로드맵을 가동해 보십시오.`;
+      dashTip.textContent = `현재 반영된 활동(${activeCount}개)이 충분하여 학종 정성 경쟁력이 우수합니다. [진로 설계] 탭에서 종합 입시 로드맵을 가동해 보십시오.`;
     } else {
-      dashTip.textContent = `학종 정성 평가 지수를 보완하려면 최소 3개 이상의 활동 연동이 권장됩니다. 현재 연동 활동은 ${activeCount}개입니다.`;
+      dashTip.textContent = `학종 정성 평가 지수를 보완하려면 최소 3개 이상의 활동 반영이 권장됩니다. 현재 반영 활동은 ${activeCount}개입니다.`;
     }
   }
 }
@@ -2206,6 +2488,8 @@ async function copyText(text, successMessage) {
 }
 
 function setupActionButtons() {
+  setupDreamFeatureHandlers();
+
   document.querySelectorAll("[data-view-jump]").forEach((button) => {
     button.addEventListener("click", () => setView(button.dataset.viewJump));
   });
@@ -2680,7 +2964,7 @@ function updateLiveAiGuide() {
     aiActivityStat.textContent = `${activeCount}개 선택됨`;
   }
 
-  const rating = activeCount ? `${activeCount}개 활동 기록` : "활동 미연동";
+  const rating = activeCount ? `${activeCount}개 활동 기록` : "활동 미반영";
   const advice = `선택 전형은 ${targetVal}입니다. 입력된 내신·백분위와 활동 수는 저장용으로만 표시하며, 합격 가능성·내신 컷·대학권역은 예측하지 않습니다. 실제 기준은 학교 홈페이지, 모집요강, 커리어넷 API 검색 결과에서 확인하세요.`;
 
   if (aiRatingStat) {
@@ -2804,7 +3088,7 @@ function setupRoadmapDesigner() {
         }
         
         const levelEl = document.getElementById("res-q-level");
-        const qLevelText = activeCount ? `${activeCount}개 활동 연동` : "활동 미연동";
+        const qLevelText = activeCount ? `${activeCount}개 활동 반영` : "활동 미반영";
         if (levelEl) levelEl.textContent = qLevelText;
         
         const roadmapData = {
@@ -3579,11 +3863,11 @@ function setupExplorePortal() {
 
   // "- 항목\r\n- 항목" 형태의 멀티라인 텍스트를 불릿 목록으로 렌더
   function renderBulletText(text) {
-    // 줄바꿈을 보존하기 위해 stripApiText 대신 태그만 제거하고 줄 단위로 정리
+    // 태그 제거 후, 줄바꿈 또는 " - / – " 대시 구분으로 항목 분리(보고서식 불릿)
     const raw = String(text || "").replace(/<[^>]*>/g, " ");
     const lines = raw
-      .split(/\r?\n/)
-      .map((line) => line.replace(/^[\s\-•·]+/, "").replace(/\s+/g, " ").trim())
+      .split(/\r?\n|\s[–\-•·]\s+/)
+      .map((line) => line.replace(/^[\s\-–•·]+/, "").replace(/\s+/g, " ").trim())
       .filter(Boolean);
     if (!lines.length) return "";
     if (lines.length === 1) return `<p class="career-detail-text">${escapeHtml(lines[0])}</p>`;
@@ -4374,7 +4658,7 @@ function setupExplorePortal() {
       card.className = "cn-result-card";
       card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <span class="cn-badge">체험 연계</span>
+          <span class="cn-badge">체험 추천</span>
           <span style="font-size: 11.5px; background: #eff6ff; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-weight: 800;">체험 예시</span>
         </div>
         <h4 style="margin: 6px 0 0; font-size: 15.5px; color: var(--ink); font-weight: 800;">${prog.title}</h4>
@@ -4479,9 +4763,18 @@ function setupExplorePortal() {
       summary: firstText(item.work, item.summary, item.description, item.jobSum),
       wage: firstText(item.wage, item.salery, item.salary),
       related: firstText(item.rel_job_nm, item.similarJob, item.similarjob),
+      views: firstText(item.views, item.view_cnt, item.viewCnt),
+      likes: firstText(item.likes, item.like_cnt, item.likeCnt),
       seq,
       link: seq ? `https://www.career.go.kr/cnet/front/base/job/jobView.do?SEQ=${encodeURIComponent(seq)}` : ""
     };
+  }
+
+  // 조회수/좋아요 숫자 포맷 (10000 이상은 'N.N만')
+  function formatCount(value) {
+    const n = Number(String(value).replace(/[^0-9.]/g, "")) || 0;
+    if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, "") + "만";
+    return n.toLocaleString("ko-KR");
   }
 
   async function showDictionaryDetail(type, item) {
@@ -4570,6 +4863,8 @@ function setupExplorePortal() {
       employment: major.employment,
       salary: major.salary,
       qualification: major.qualification,
+      views: major.views || major.view_cnt || "",
+      likes: major.likes || major.like_cnt || "",
       link: major.seq ? `https://www.career.go.kr/cnet/front/base/major/FunivMajorView.do?SEQ=${encodeURIComponent(major.seq)}` : ""
     })), totalCount };
   }
@@ -4617,8 +4912,18 @@ function setupExplorePortal() {
       renderCareerSearchCards(type, resultsList);
     } catch (err) {
       console.error(err);
-      if (searchStatus) searchStatus.textContent = "커리어넷 API 검색 중 오류가 발생했습니다.";
-      resultsList.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--muted);">내장 결과 없이 커리어넷 API에서만 검색합니다. 네트워크 요청을 확인해 주세요.</div>`;
+      if (searchStatus) searchStatus.textContent = "커리어넷 정보를 불러오지 못했습니다.";
+      resultsList.innerHTML = `
+        <article class="cn-result-card career-api-card api-empty-card" style="grid-column: 1 / -1;">
+          <div class="career-api-card-head">
+            <h4>검색 정보를 불러올 수 없어요</h4>
+          </div>
+          <p class="career-card-summary">인터넷 연결 또는 커리어넷 응답 상태를 확인한 뒤 다시 검색해 주세요.</p>
+          <div class="career-card-bottom">
+            <button type="button" class="outline" onclick="document.getElementById('btn-cn-search')?.click()">다시 검색</button>
+          </div>
+        </article>
+      `;
     }
   };
 
@@ -4656,7 +4961,7 @@ function setupExplorePortal() {
           <div class="career-api-card-head">
             <h4>${escapeHtml(item.name)}</h4>
             <div class="career-card-quick-actions">
-              <button type="button" class="btn-card-detail" aria-label="${escapeHtml(item.name)} 자세히 보기">추천</button>
+              <button type="button" class="btn-recommend" aria-label="${escapeHtml(item.name)} 추천">추천</button>
               <button type="button" class="btn-reg-target" aria-label="${escapeHtml(item.name)} 관심 등록">관심</button>
             </div>
           </div>
@@ -4672,7 +4977,9 @@ function setupExplorePortal() {
           <div class="career-card-tags">${tagHtml || `<span>${escapeHtml(visualLabel)} 정보</span>`}</div>
           <p class="career-card-summary">${escapeHtml(summary)}</p>
           <div class="career-card-bottom">
-            ${item.link ? `<a class="cn-link" href="${item.link}" target="_blank" rel="noopener">커리어넷 열기</a>` : ""}
+            <div class="career-card-meta">
+              ${item.views ? `<span class="cc-views">${escapeHtml(formatCount(item.views))}</span>` : ""}
+            </div>
             <button type="button" class="outline btn-card-detail">자세히 보기</button>
           </div>
         `;
@@ -4695,22 +5002,28 @@ function setupExplorePortal() {
           }
         });
 
+        // 관심 버튼: 게스트도 시각 토글, 로그인 시 희망 직업·학과로 등록
         card.querySelector(".btn-reg-target").onclick = async (event) => {
           event.stopPropagation();
-          if (!currentUser) {
-            showToast("로그인 후 희망 직업·학과를 저장할 수 있습니다.");
-            setView("auth");
-            return;
+          const btn = event.currentTarget;
+          const willActive = !btn.classList.contains("is-active");
+          btn.classList.toggle("is-active", willActive);
+          if (!willActive) { showToast("관심을 해제했어요."); return; }
+          showToast(`${item.name}을(를) 관심에 추가했어요.`);
+          if (currentUser) {
+            if (type === "jobs") studentState.job = item.name;
+            else studentState.major = item.name;
+            await saveStudentStateToServer();
+            syncProfileInputsToUI();
           }
-          if (type === "jobs") {
-            studentState.job = item.name;
-            showToast(`내 프로필 희망 직업이 [${item.name}]으로 변경되었습니다.`);
-          } else {
-            studentState.major = item.name;
-            showToast(`내 프로필 희망 학과가 [${item.name}]으로 변경되었습니다.`);
-          }
-          await saveStudentStateToServer();
-          syncProfileInputsToUI();
+        };
+
+        // 추천 버튼: 시각 토글 (로컬)
+        const recBtn = card.querySelector(".btn-recommend");
+        if (recBtn) recBtn.onclick = (event) => {
+          event.stopPropagation();
+          const on = recBtn.classList.toggle("is-active");
+          showToast(on ? `${item.name}을(를) 추천했어요.` : "추천을 해제했어요.");
         };
 
         target.appendChild(card);
@@ -4870,3 +5183,102 @@ setupPasswordToggles();
 
 checkAuth();
 setupMobileBottomNav();
+
+function applyHashRoute() {
+  const raw = decodeURIComponent((location.hash || "").replace(/^#/, "")).trim();
+  if (!raw) return;
+  const [viewName, tabName] = raw.split(/[:/]/);
+  if (!labels[viewName]) return;
+  setView(viewName);
+  if (viewName === "explore" && tabName) {
+    window.setTimeout(() => {
+      activateExploreTab(tabName);
+    }, 80);
+  }
+}
+
+function activateExploreTab(tabName) {
+  const tab = document.querySelector(`[data-explore-tab="${tabName}"]`);
+  const content = document.getElementById(`explore-tab-${tabName}`);
+  if (!tab || !content) return;
+  document.querySelectorAll(".explore-tab-btn").forEach((item) => item.classList.toggle("is-active", item === tab));
+  document.querySelectorAll(".explore-tab-content").forEach((item) => item.classList.toggle("is-active", item === content));
+  tab.click();
+  window.setTimeout(() => {
+    document.querySelectorAll(".explore-tab-btn").forEach((item) => item.classList.toggle("is-active", item === tab));
+    document.querySelectorAll(".explore-tab-content").forEach((item) => item.classList.toggle("is-active", item === content));
+  }, 200);
+}
+
+window.addEventListener("hashchange", applyHashRoute);
+window.setTimeout(applyHashRoute, 300);
+
+/* 프로필 사진 로컬 업로드 (서버 연결 없음, localStorage 보관) */
+(function setupAvatarUpload() {
+  var AV_KEY = "jb_avatar_image";
+  function applyAvatarImage(url) {
+    document.querySelectorAll(".portrait-avatar, .mini-avatar").forEach(function (el) {
+      el.style.backgroundImage = 'url("' + url + '")';
+      el.style.backgroundSize = "cover";
+      el.style.backgroundPosition = "center";
+      el.classList.add("has-photo");
+    });
+  }
+  function init() {
+    var btn = document.querySelector(".avatar-block button");
+    var input = document.getElementById("avatar-file-input");
+    try {
+      var saved = localStorage.getItem(AV_KEY);
+      if (saved) applyAvatarImage(saved);
+    } catch (e) {}
+    if (btn && input) {
+      btn.addEventListener("click", function () { input.click(); });
+      input.addEventListener("change", function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type)) { return; }
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var url = e.target.result;
+          applyAvatarImage(url);
+          try { localStorage.setItem(AV_KEY, url); } catch (_) {}
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+  if (document.readyState !== "loading") init();
+  else document.addEventListener("DOMContentLoaded", init);
+})();
+
+/* 활동기록 사진 첨부 — 로컬 미리보기 (서버 연결 없음) */
+(function setupRecordAttach() {
+  function init() {
+    var input = document.getElementById("record-file-input");
+    var row = document.getElementById("record-thumb-row");
+    if (!input || !row) return;
+    input.addEventListener("change", function () {
+      Array.prototype.forEach.call(input.files || [], function (file) {
+        if (!/^image\//.test(file.type)) return;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          var thumb = document.createElement("span");
+          thumb.className = "file-thumb has-img";
+          thumb.style.backgroundImage = 'url("' + e.target.result + '")';
+          var del = document.createElement("button");
+          del.type = "button";
+          del.className = "thumb-del";
+          del.setAttribute("aria-label", "첨부 삭제");
+          del.textContent = "×";
+          del.onclick = function (ev) { ev.stopPropagation(); thumb.remove(); };
+          thumb.appendChild(del);
+          row.appendChild(thumb);
+        };
+        reader.readAsDataURL(file);
+      });
+      input.value = "";
+    });
+  }
+  if (document.readyState !== "loading") init();
+  else document.addEventListener("DOMContentLoaded", init);
+})();

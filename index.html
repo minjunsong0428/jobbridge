@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css?v=4" />
-    <link rel="stylesheet" href="css/design-tweaks.css?v=11" />
+    <link rel="stylesheet" href="css/design-tweaks.css?v=31" />
   </head>
   <body>
     <!-- 로그인 및 회원가입 화면 -->
@@ -120,23 +120,23 @@
 
         <nav class="nav-list">
           <button class="nav-item is-active" type="button" data-view="home">
-            <img class="nav-icon-img" src="assets/icons/home.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/home.svg?v=3" alt="" />
             홈
           </button>
           <button class="nav-item" type="button" data-view="profile">
-            <img class="nav-icon-img" src="assets/icons/profile.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/profile.svg?v=3" alt="" />
             학생 정보
           </button>
           <button class="nav-item" type="button" data-view="record">
-            <img class="nav-icon-img" src="assets/icons/record.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/record.svg?v=3" alt="" />
             활동 기록
           </button>
           <button class="nav-item" type="button" data-view="explore">
-            <img class="nav-icon-img" src="assets/icons/explore.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/explore.svg?v=3" alt="" />
             진로 탐색
           </button>
           <button class="nav-item" type="button" data-view="career">
-            <img class="nav-icon-img" src="assets/icons/career.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/career.svg?v=3" alt="" />
             진로 연결
           </button>
           <button class="nav-item" type="button" data-view="dream">
@@ -144,15 +144,15 @@
             꿈잇다
           </button>
           <button class="nav-item" type="button" data-view="portfolio">
-            <img class="nav-icon-img" src="assets/icons/portfolio.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/portfolio.svg?v=3" alt="" />
             포트폴리오
           </button>
           <button class="nav-item" type="button" data-view="zep">
-            <img class="nav-icon-img" src="assets/icons/zep.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/zep.svg?v=3" alt="" />
             ZEP 전시관
           </button>
           <button class="nav-item" type="button" data-view="feedback">
-            <img class="nav-icon-img" src="assets/icons/inquiry.svg?v=2" alt="" />
+            <img class="nav-icon-img" src="assets/icons/inquiry.svg?v=3" alt="" />
             선생님 피드백
           </button>
         </nav>
@@ -228,7 +228,7 @@
                   <rect x="145" y="206" width="82" height="9" rx="4.5" fill="#18c4b7"/>
                   <rect x="152" y="217" width="92" height="9" rx="4.5" fill="#2d7dff"/>
                   <rect x="160" y="228" width="76" height="9" rx="4.5" fill="#7d5cf6" opacity="0.45"/>
-                  <image href="assets/icons/cheer-character.svg?v=2" x="210" y="102" width="104" height="104"/>
+                  <image href="assets/icons/cheer-character.svg?v=3" x="210" y="102" width="104" height="104"/>
                   <rect x="292" y="168" width="118" height="72" rx="12" fill="#eff6ff" stroke="rgba(45, 125, 255, 0.26)" stroke-width="2"/>
                   <rect x="305" y="182" width="92" height="42" rx="7" fill="#ffffff"/>
                   <circle cx="351" cy="203" r="8" fill="#9db7e7"/>
@@ -274,7 +274,7 @@
 
           <div class="action-row">
             <button class="action-card blue" type="button" data-view-jump="record">
-              <span class="action-icon-wrap"><img src="assets/icons/action-start.svg?v=2" alt="" /></span>
+              <span class="action-icon-wrap"><img src="assets/icons/action-start.svg?v=3" alt="" /></span>
               <span>
                 <strong>시작하기</strong>
                 <small>새로운 활동을 기록하고 나의 진로 여정을 시작해요.</small>
@@ -282,7 +282,7 @@
               <i>›</i>
             </button>
             <button class="action-card teal" type="button" data-view-jump="portfolio">
-              <span class="action-icon-wrap"><img src="assets/icons/action-portfolio.svg?v=2" alt="" /></span>
+              <span class="action-icon-wrap"><img src="assets/icons/action-portfolio.svg?v=3" alt="" /></span>
               <span>
                 <strong>내 포트폴리오 보기</strong>
                 <small>활동, 역량, 목표를 한 장의 성장 기록으로 확인해요.</small>
@@ -290,7 +290,7 @@
               <i>›</i>
             </button>
             <button class="action-card violet" type="button" data-view-jump="zep">
-              <span class="action-icon-wrap"><img src="assets/icons/action-zep.svg?v=2" alt="" /></span>
+              <span class="action-icon-wrap"><img src="assets/icons/action-zep.svg?v=3" alt="" /></span>
               <span>
                 <strong>ZEP 전시관 보기</strong>
                 <small>완성한 포트폴리오를 체험형 전시관으로 보여줘요.</small>
@@ -360,7 +360,8 @@
           </div>
           <div class="form-layout">
             <form class="record-form" id="main-record-form">
-              <label class="field-row" data-field-icon="record"><span>활동 제목</span><input id="record-title" value="" placeholder="활동 제목을 입력하세요" /></label>
+              <p class="record-req-note"><i class="req">*</i> 표시는 필수 입력 항목이에요. 나머지는 선택입니다.</p>
+              <label class="field-row" data-field-icon="record"><span>활동 제목 <i class="req">*</i></span><input id="record-title" value="" placeholder="활동 제목을 입력하세요" /></label>
               <label class="field-row" data-field-icon="date"><span>활동 날짜</span><input id="record-date" type="date" /></label>
               <label class="field-row" data-field-icon="category"><span>활동 카테고리</span>
                 <select id="record-category">
@@ -375,22 +376,23 @@
                 </select>
               </label>
               <div id="record-dynamic-fields" class="record-dynamic-fields"></div>
-              <label class="field-row wide-field" data-field-icon="content"><span>활동 내용</span><textarea id="record-content" placeholder="활동의 목적, 진행 과정, 주요 내용 등을 자세히 작성해 주세요."></textarea></label>
+              <label class="field-row wide-field" data-field-icon="content"><span>활동 내용 <i class="req">*</i></span><textarea id="record-content" placeholder="활동의 목적, 진행 과정, 주요 내용 등을 자세히 작성해 주세요."></textarea></label>
               <label class="field-row wide-field" data-field-icon="learned"><span>배운 점</span><textarea id="record-learned" placeholder="이번 활동을 통해 새롭게 배운 점은 무엇인가요?"></textarea></label>
               <label class="field-row wide-field" data-field-icon="feeling"><span>느낀 점</span><textarea id="record-feeling" placeholder="활동을 통해 느낀 점이나 기억에 남는 순간을 작성해 주세요."></textarea></label>
               <label class="field-row wide-field" data-field-icon="difficulty"><span>어려웠던 점</span><textarea id="record-difficulty" placeholder="활동 중 막혔던 부분이나 고민했던 점을 적어주세요."></textarea></label>
               <label class="field-row wide-field" data-field-icon="solution"><span>해결한 방법</span><textarea id="record-solution" placeholder="문제를 어떻게 해결했는지 구체적으로 적어주세요."></textarea></label>
-              <label class="field-row" data-field-icon="career"><span>관련 진로</span><select id="record-career"><option value="">관련 진로를 선택하세요</option></select></label>
+              <label class="field-row" data-field-icon="career"><span>관련 진로 <i class="req">*</i></span><select id="record-career"><option value="">관련 진로를 선택하세요</option></select></label>
               <label class="field-row" data-field-icon="link"><span>첨부 링크</span><input id="record-link" placeholder="https:// 또는 자료 링크" /></label>
               <div class="upload-row">
                 <span>사진/링크 첨부</span>
-                <div class="upload-box">이미지, 문서, 링크를 추가할 수 있어요</div>
-              </div>
-              <div class="thumb-row">
-                <span class="file-thumb"></span>
-                <span class="file-thumb small-phone"></span>
-                <span class="file-thumb photo"></span>
-                <button type="button" class="add-file">+ 추가</button>
+                <div class="upload-field">
+                  <label class="upload-dropzone" for="record-file-input">
+                    <span class="upload-plus" aria-hidden="true">＋</span>
+                    <span class="upload-hint">이미지·문서·링크를 추가하세요</span>
+                  </label>
+                  <input type="file" id="record-file-input" accept="image/*" multiple hidden />
+                  <div class="thumb-row" id="record-thumb-row"></div>
+                </div>
               </div>
               <div class="form-actions">
                 <button type="button" class="ghost">취소</button>
@@ -519,9 +521,9 @@
         <section class="view" data-panel="dream">
           <div class="page-title art-title">
             <div>
-              <small>학생 성장관리 › 꿈잇다</small>
+              <small>학생 성장관리 › 꿈잇다 기능</small>
               <h1>꿈잇다</h1>
-              <p>학생 이력, 진로 설계, 상담, 모의면접, 로드맵을 한 화면에서 관리합니다.</p>
+              <p>학생 이력, 진로 설계, 상담, 모의면접, 활동 포트폴리오를 한 화면에서 관리합니다.</p>
             </div>
             <div class="student-art dream-art" aria-hidden="true">
               <svg viewBox="0 0 240 120" style="width: 100%; height: 100%; display: block;">
@@ -540,19 +542,26 @@
             <div class="activity-image dream-image"></div>
             <div>
               <h2>학생 성장 기록을 진로·진학 실행표로 정리</h2>
-              <p><mark>핵심 기능</mark> 이력관리, 진로설계, 상담기록, 모의면접, 목표관리</p>
-              <p>활동 기록과 흥미검사 결과를 바탕으로 선생님 상담, 학교·학과 탐색, 포트폴리오 준비까지 이어지는 실행 화면입니다.</p>
+              <p><mark>핵심 기능</mark> 학생이력, 진로활동, 상담관리, 면접준비, 포트폴리오</p>
+              <p>활동 기록과 흥미검사 결과를 바탕으로 진로 상담, 학교·학과 탐색, 면접 준비, 포트폴리오 제출까지 이어지는 실행 화면입니다.</p>
             </div>
           </article>
+
+          <div class="dream-stats" id="dream-stats">
+            <div class="dream-stat"><span>기록한 활동</span><strong id="dream-activity-count">0개</strong></div>
+            <div class="dream-stat"><span>희망 진로</span><strong id="dream-job-txt">미설정</strong></div>
+            <div class="dream-stat"><span>희망 학과</span><strong id="dream-major-txt">미설정</strong></div>
+            <div class="dream-stat"><span>진로 준비도</span><strong id="dream-progress-txt">0%</strong></div>
+          </div>
 
           <div class="career-cards dream-cards">
             <article>
               <span class="round-icon clipboard"></span>
               <h2>학생 이력관리</h2>
               <ul>
-                <li>기본 정보와 관심 분야 관리</li>
-                <li>활동·독서·대회 기록 누적</li>
-                <li>포트폴리오 반영 항목 체크</li>
+                <li>학생 기본 정보와 희망 진로 관리</li>
+                <li>활동·독서·대회·체험 기록 누적</li>
+                <li>성장 기록과 제출 자료 상태 확인</li>
               </ul>
             </article>
             <article>
@@ -560,17 +569,17 @@
               <h2>진로·진학 설계</h2>
               <ul>
                 <li>흥미검사 결과 기반 진로 연결</li>
-                <li>고입·대입 탐색 결과 반영</li>
-                <li>학기별 목표와 다음 할 일 생성</li>
+                <li>고입·대입 학교 및 학과 탐색</li>
+                <li>목표 진로별 준비 단계 관리</li>
               </ul>
             </article>
             <article>
               <span class="round-icon chat"></span>
               <h2>상담·피드백</h2>
               <ul>
-                <li>선생님 피드백 기록</li>
-                <li>상담 후 보완 메모 저장</li>
-                <li>받은 피드백 반영 여부 관리</li>
+                <li>선생님 상담 기록 확인</li>
+                <li>보완 의견과 학생 반영 메모 저장</li>
+                <li>피드백 완료 여부 관리</li>
               </ul>
             </article>
             <article>
@@ -584,27 +593,153 @@
             </article>
             <article>
               <span class="round-icon school"></span>
-              <h2>학교·학과 탐색</h2>
+              <h2>진로체험·학교탐색</h2>
               <ul>
+                <li>진로체험 활동 후보 정리</li>
                 <li>고등학교·대학교 정보 확인</li>
-                <li>학과별 관련 직업 확인</li>
-                <li>관심 학교 후보 정리</li>
+                <li>관심 학교와 학과 후보 저장</li>
               </ul>
             </article>
             <article>
               <span class="round-icon monitor"></span>
-              <h2>포트폴리오 제출관리</h2>
+              <h2>포트폴리오 관리</h2>
               <ul>
-                <li>PDF 저장 준비</li>
-                <li>공유 링크 점검</li>
-                <li>ZEP 전시관 전환</li>
+                <li>진로활동 포트폴리오 구성</li>
+                <li>PDF 저장 및 공유 링크 점검</li>
+                <li>ZEP 전시관 제출 화면 전환</li>
               </ul>
+            </article>
+          </div>
+
+          <div class="dream-workspace" id="dream-workspace">
+            <article class="dream-tool-card" data-dream-tool="history">
+              <div class="dream-tool-head">
+                <span class="round-icon clipboard"></span>
+                <div>
+                  <h2>학생 이력관리</h2>
+                  <p>프로필과 최근 활동 기록을 한 번에 확인합니다.</p>
+                </div>
+              </div>
+              <dl class="dream-profile-grid">
+                <div><dt>이름</dt><dd id="dream-profile-name">이름 미입력</dd></div>
+                <div><dt>학년</dt><dd id="dream-profile-grade">학년 미입력</dd></div>
+                <div><dt>관심 분야</dt><dd id="dream-profile-interests">미설정</dd></div>
+                <div><dt>최근 활동</dt><dd id="dream-profile-latest">기록 없음</dd></div>
+              </dl>
+              <div class="dream-action-row">
+                <button type="button" class="outline" data-dream-action="profile">학생 정보 수정</button>
+                <button type="button" class="primary" data-dream-action="record">활동 기록 추가</button>
+              </div>
+            </article>
+
+            <article class="dream-tool-card" data-dream-tool="design">
+              <div class="dream-tool-head">
+                <span class="round-icon network"></span>
+                <div>
+                  <h2>진로·진학 설계</h2>
+                  <p>흥미검사, 학교·학과 탐색, 로드맵을 연결합니다.</p>
+                </div>
+              </div>
+              <ul class="dream-status-list" id="dream-design-list">
+                <li>희망 진로와 학과를 입력하면 설계 상태가 표시됩니다.</li>
+              </ul>
+              <div class="dream-action-row">
+                <button type="button" class="outline" data-dream-action="interest-test">흥미검사 열기</button>
+                <button type="button" class="outline" data-dream-action="school-search">학교·학과 탐색</button>
+                <button type="button" class="primary" data-dream-action="roadmap">로드맵 설계</button>
+              </div>
+            </article>
+
+            <article class="dream-tool-card" data-dream-tool="feedback">
+              <div class="dream-tool-head">
+                <span class="round-icon chat"></span>
+                <div>
+                  <h2>상담·피드백</h2>
+                  <p>선생님 의견과 학생 반영 메모를 저장합니다.</p>
+                </div>
+              </div>
+              <div class="dream-form-grid">
+                <label>피드백 태그
+                  <select id="dream-feedback-tag">
+                    <option>진로 연결성</option>
+                    <option>활동 과정 보완</option>
+                    <option>면접 답변 보완</option>
+                    <option>포트폴리오 제출</option>
+                  </select>
+                </label>
+                <label>선생님 의견
+                  <input id="dream-feedback-comment" placeholder="예: 활동 과정과 배운 점을 더 구체화하세요" />
+                </label>
+                <label class="wide">학생 반영 메모
+                  <textarea id="dream-feedback-note" placeholder="피드백을 어떻게 반영할지 적어주세요."></textarea>
+                </label>
+              </div>
+              <div class="dream-action-row">
+                <button type="button" class="primary" data-dream-action="save-feedback">피드백 저장</button>
+                <button type="button" class="outline" data-dream-action="open-feedback">피드백 탭 열기</button>
+              </div>
+              <div class="dream-mini-list" id="dream-feedback-list"></div>
+            </article>
+
+            <article class="dream-tool-card" data-dream-tool="interview">
+              <div class="dream-tool-head">
+                <span class="round-icon target"></span>
+                <div>
+                  <h2>모의면접 준비</h2>
+                  <p>활동 기록을 선택해 예상 질문과 답변 키워드를 만듭니다.</p>
+                </div>
+              </div>
+              <div class="dream-form-grid">
+                <label>면접 활동 선택
+                  <select id="dream-interview-activity"></select>
+                </label>
+                <label class="wide">답변 키워드
+                  <textarea id="dream-interview-answer" placeholder="답변에 넣을 경험, 역할, 배운 점을 적어주세요."></textarea>
+                </label>
+              </div>
+              <div class="dream-action-row">
+                <button type="button" class="outline" data-dream-action="generate-interview">예상 질문 생성</button>
+                <button type="button" class="primary" data-dream-action="save-interview">답변 저장</button>
+              </div>
+              <ol class="dream-question-list" id="dream-question-list"></ol>
+            </article>
+
+            <article class="dream-tool-card" data-dream-tool="experience">
+              <div class="dream-tool-head">
+                <span class="round-icon school"></span>
+                <div>
+                  <h2>진로체험·학교탐색</h2>
+                  <p>관심 분야에 맞는 체험 준비와 학교 탐색으로 이동합니다.</p>
+                </div>
+              </div>
+              <div class="dream-mini-list" id="dream-experience-list"></div>
+              <div class="dream-action-row">
+                <button type="button" class="outline" data-dream-action="add-experience-todo">체험 준비 할 일 추가</button>
+                <button type="button" class="primary" data-dream-action="school-search">탐색 화면 열기</button>
+              </div>
+            </article>
+
+            <article class="dream-tool-card" data-dream-tool="portfolio">
+              <div class="dream-tool-head">
+                <span class="round-icon monitor"></span>
+                <div>
+                  <h2>포트폴리오 관리</h2>
+                  <p>완성도와 제출 준비 상태를 확인합니다.</p>
+                </div>
+              </div>
+              <div class="dream-progress-line"><i id="dream-portfolio-bar"></i></div>
+              <ul class="dream-check-list" id="dream-portfolio-checks"></ul>
+              <div class="dream-action-row">
+                <button type="button" class="outline" data-dream-action="portfolio">포트폴리오 열기</button>
+                <button type="button" class="outline" data-dream-action="share">공유 링크 복사</button>
+                <button type="button" class="primary" data-dream-action="zep">ZEP 전시관</button>
+              </div>
             </article>
           </div>
 
           <div class="insight-box dream-insight">
             <span class="round-icon bulb"></span>
-            <p><b>꿈잇다</b> 화면은 활동 기록을 단순히 보여주는 곳이 아니라, 학생 이력관리부터 상담, 면접, 포트폴리오 제출까지 이어지는 실행 관리 화면입니다.</p>
+            <p><b>꿈잇다</b> 화면은 교육청 꿈잇다의 학생 이력·상담·면접·포트폴리오 관리 흐름을 진로브릿지 안에서 사용할 수 있게 구성한 실행 관리 화면입니다.</p>
           </div>
         </section>
 
@@ -625,11 +760,11 @@
             <div class="room front-room"></div>
           </div>
           <div class="zep-grid">
-            <article><span class="round-icon user"></span><h2>자기소개 존</h2><p>나를 소개하고 성장 과정을 보여주는 공간이에요.</p></article>
-            <article><span class="round-icon clipboard"></span><h2>활동 기록 존</h2><p>교내·교외 활동과 경험을 기록한 공간이에요.</p></article>
-            <article><span class="round-icon monitor"></span><h2>프로젝트 전시 존</h2><p>프로젝트 결과물을 전시하고 성과를 소개해요.</p></article>
-            <article><span class="round-icon link"></span><h2>진로 연결 존</h2><p>관심 분야와 관련 직업·학과를 연결해 보여줘요.</p></article>
-            <article><span class="round-icon network"></span><h2>마인드맵 존</h2><p>진로 탐색과 미래 계획을 마인드맵으로 정리해요.</p></article>
+            <article><span class="round-icon user"></span><h2>자기소개 존</h2><p id="zep-intro">나를 소개하고 성장 과정을 보여주는 공간이에요.</p></article>
+            <article><span class="round-icon clipboard"></span><h2>활동 기록 존</h2><p id="zep-activity">교내·교외 활동과 경험을 기록한 공간이에요.</p></article>
+            <article><span class="round-icon monitor"></span><h2>프로젝트 전시 존</h2><p id="zep-project">프로젝트 결과물을 전시하고 성과를 소개해요.</p></article>
+            <article><span class="round-icon link"></span><h2>진로 연결 존</h2><p id="zep-career">관심 분야와 관련 직업·학과를 연결해 보여줘요.</p></article>
+            <article><span class="round-icon network"></span><h2>마인드맵 존</h2><p id="zep-mindmap">진로 탐색과 미래 계획을 마인드맵으로 정리해요.</p></article>
             <article><span class="round-icon chat"></span><h2>피드백 존</h2><p>선생님과 친구들의 피드백을 보고 성장을 확인해요.</p></article>
           </div>
           <div class="bottom-actions">
@@ -659,7 +794,8 @@
               <form class="student-form">
                 <div class="avatar-block">
                   <span class="portrait-avatar big" id="avatar-initials-profile-big" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26px; font-weight: 800; border: 3px solid #fff; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3); margin: 0 auto 12px;">학</span>
-                  <button type="button" aria-label="프로필 사진 변경">●</button>
+                  <button type="button" class="avatar-cam-btn" aria-label="프로필 사진 변경"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 8.5h3L9 6.5h6l1.5 2h3a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.3"/></svg></button>
+                  <input type="file" id="avatar-file-input" accept="image/*" hidden />
                 </div>
                 <div class="fields">
                   <label>이름<input id="profile-name" value="" placeholder="이름을 입력하세요" /></label>
@@ -792,7 +928,7 @@
                   </div>
                   <div class="radar-score-item">
                     <span>정성 활동 수</span>
-                    <strong id="dash-q-txt">0개 활동 연동</strong>
+                    <strong id="dash-q-txt">0개 활동 반영</strong>
                   </div>
                 </div>
                 <div class="dash-recommendation-box">
@@ -972,7 +1108,9 @@
                   <div class="test-mode-options" id="test-mode-options" aria-label="검사 문항 수 선택">
                     <button type="button" data-test-length="18"><strong>빠른 검사</strong><span>18문항 · 약 3분</span></button>
                     <button type="button" class="is-active" data-test-length="36"><strong>표준 검사</strong><span>36문항 · 약 6분</span></button>
-                    <button type="button" data-test-length="72"><strong>정밀 검사</strong><span>72문항 · 약 12분</span></button>
+                    <button type="button" data-test-length="48"><strong>심화 검사</strong><span>48문항 · 약 8분</span></button>
+                    <button type="button" data-test-length="60"><strong>정밀 검사</strong><span>60문항 · 약 10분</span></button>
+                    <button type="button" data-test-length="72"><strong>완전 검사</strong><span>72문항 · 약 12분</span></button>
                   </div>
                   <button type="button" class="primary" id="btn-start-test" style="padding: 12px 32px; font-size: 15px; font-weight: 800; border: 0;">36문항 검사 시작</button>
                 </div>
@@ -1000,9 +1138,9 @@
                   <button type="button" class="outline" id="btn-restart-test" style="margin-top: 16px; padding: 6px 14px; font-size: 13px; border-radius: 6px; background: #fff; border: 1px solid var(--line); font-weight: 700; cursor: pointer;">검사 다시 받기</button>
                 </div>
 
-                <!-- 체험 연계 프로그램 목록 -->
+                <!-- 체험 추천 프로그램 목록 -->
                 <div>
-                  <h4 style="margin: 0 0 8px; font-size: 16px; color: var(--ink); text-align: left;">💡 연계 추천 진로체험 프로그램</h4>
+                  <h4 style="margin: 0 0 8px; font-size: 16px; color: var(--ink); text-align: left;">맞춤 추천 진로체험 프로그램</h4>
                   <p style="font-size: 13.5px; color: var(--muted); margin: 0 0 16px; text-align: left;">내 흥미와 연결되는 직업 체험 활동 리스트입니다.</p>
                   
                   <div class="experience-list" id="experience-program-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
@@ -1106,7 +1244,7 @@
                 
                 <div class="designer-form-grid">
                   <div class="form-section">
-                    <h4>1. 학생 기본 정보 (학생 정보 연계)</h4>
+                    <h4>1. 학생 기본 정보</h4>
                     <div class="readonly-profile-info">
                       <p><strong>이름:</strong> <span id="rm-name">김브릿지</span></p>
                       <p><strong>학년:</strong> <span id="rm-grade">고등학교 2학년</span></p>
@@ -1136,7 +1274,7 @@
                   </div>
 
                   <div class="form-section full-width-section">
-                    <h4>3. 연동할 나의 활동 기록 선택</h4>
+                    <h4>3. 반영할 나의 활동 기록 선택</h4>
                     <p class="section-desc">체크된 활동들의 핵심 역량을 정성적으로 분석해 학생부 경쟁력 지수를 산출합니다.</p>
                     <div class="activities-checkbox-list" id="rm-activity-selector">
                       <!-- Javascript로 동적 로드됨 -->
@@ -1166,12 +1304,12 @@
                       <strong id="ai-mock-stat">미입력</strong>
                     </div>
                     <div class="ai-stat-row">
-                      <span>연동할 활동:</span>
+                      <span>반영할 활동:</span>
                       <strong id="ai-activity-stat">0개 선택됨</strong>
                     </div>
                     <div class="ai-stat-row">
-                      <span>활동 연동 상태:</span>
-                      <strong id="ai-rating-stat" class="grade-badge-txt">활동 미연동</strong>
+                      <span>활동 반영 상태:</span>
+                      <strong id="ai-rating-stat" class="grade-badge-txt">활동 미반영</strong>
                     </div>
                   </div>
                   <div class="ai-advice-paragraph" id="ai-advice-paragraph">
@@ -1217,7 +1355,7 @@
                         <strong>기록 기반 정리</strong>
                         <ul>
                           <li>희망 직업·학과는 커리어넷 API 검색 결과에서 선택한 값만 반영</li>
-                          <li>연동된 <strong>[<span class="active-title-placeholder">선택한 활동 없음</span>]</strong> 활동에서 발휘한 역량을 심화 탐구 보고서로 확장</li>
+                          <li>선택한 <strong>[<span class="active-title-placeholder">선택한 활동 없음</span>]</strong> 활동에서 발휘한 역량을 심화 탐구 보고서로 확장</li>
                         </ul>
                       </div>
                     </div>
@@ -1304,8 +1442,8 @@
                       
                       <div class="qualitative-score-card">
                         <div class="q-score-header">
-                          <strong>활동 기록 연동 상태</strong>
-                          <span class="score-val" id="res-q-level">미연동</span>
+                          <strong>활동 기록 반영 상태</strong>
+                          <span class="score-val" id="res-q-level">미반영</span>
                         </div>
                         <p class="q-score-desc">입력된 <strong>[<span class="active-count-placeholder">0</span>개의 활동]</strong>을 포트폴리오에 연결합니다. 경쟁력 점수는 예측하지 않습니다.</p>
                       </div>
@@ -1353,19 +1491,19 @@
       <!-- 모바일 하단 내비게이션 바 -->
       <nav class="mobile-bottom-nav">
         <button class="mobile-nav-item is-active" type="button" data-view="home">
-          <img class="mobile-nav-icon" src="assets/icons/home.svg?v=2" alt="" />
+          <img class="mobile-nav-icon" src="assets/icons/home.svg?v=3" alt="" />
           <span>홈</span>
         </button>
         <button class="mobile-nav-item" type="button" data-view="record">
-          <img class="mobile-nav-icon" src="assets/icons/record.svg?v=2" alt="" />
+          <img class="mobile-nav-icon" src="assets/icons/record.svg?v=3" alt="" />
           <span>기록</span>
         </button>
         <button class="mobile-nav-item" type="button" data-view="explore">
-          <img class="mobile-nav-icon" src="assets/icons/explore.svg?v=2" alt="" />
+          <img class="mobile-nav-icon" src="assets/icons/explore.svg?v=3" alt="" />
           <span>탐색</span>
         </button>
         <button class="mobile-nav-item" type="button" data-view="career">
-          <img class="mobile-nav-icon" src="assets/icons/career.svg?v=2" alt="" />
+          <img class="mobile-nav-icon" src="assets/icons/career.svg?v=3" alt="" />
           <span>연결</span>
         </button>
         <button class="mobile-nav-item" type="button" data-view="dream">
@@ -1373,7 +1511,7 @@
           <span>꿈잇다</span>
         </button>
         <button class="mobile-nav-item" type="button" data-view="zep">
-          <img class="mobile-nav-icon" src="assets/icons/zep.svg?v=2" alt="" />
+          <img class="mobile-nav-icon" src="assets/icons/zep.svg?v=3" alt="" />
           <span>ZEP</span>
         </button>
       </nav>
@@ -1398,6 +1536,6 @@
       </div>
     </div>
     </main>
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=10"></script>
   </body>
 </html>
